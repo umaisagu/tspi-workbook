@@ -1,71 +1,51 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { isLecturer } from "@/lib/auth/permissions";
+import { FLAG_ORDER, loadClassOverview } from "@/lib/server/monitoring";
 import { requireStaffPage } from "@/lib/server/page-guards";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Alert } from "@/components/ui/form";
-import { roleLabel } from "@/lib/tsp/roles";
+import { OverviewTable } from "@/components/monitor/overview-table";
+import { FlagList } from "@/components/monitor/flag-list";
+import { ActionButton } from "@/components/admin/action-button";
 
 export const metadata: Metadata = { title: "Monitor" };
 
-/** Until Stage 6: list of the teams the viewer may monitor. The full dashboard arrives in Stage 6. */
+/** Lecturer / demonstrator class overview and the class-wide "Needs attention" list. */
 export default async function MonitorPage() {
   const user = await requireStaffPage();
-  const groups = await db.labGroup.findMany({
-    where: { semester: { isActive: true }, ...(isLecturer(user) ? {} : { id: { in: [...user.demonstratorLabGroupIds] } }) },
-    orderBy: { name: "asc" },
-    include: {
-      teams: {
-        orderBy: { name: "asc" },
-        include: {
-          memberships: { where: { leftAt: null }, include: { user: { select: { name: true } }, roles: true }, orderBy: { joinedAt: "asc" } },
-        },
-      },
-    },
-  });
+  const o = await loadClassOverview(user);
+  const lecturer = isLecturer(user);
+  const attention = [...o.attention].sort((a, b) => FLAG_ORDER.indexOf(a.type) - FLAG_ORDER.indexOf(b.type) || a.teamName.localeCompare(b.teamName));
   return (
     <div className="space-y-5">
-      <PageHeader title="Monitor" subtitle="Teams in your lab groups (active semester)" />
-      {groups.length === 0 && <Alert kind="info">No lab groups assigned to you in the active semester.</Alert>}
-      {groups.map((g) => (
-        <Card key={g.id} title={g.name}>
-          <div className="grid gap-3 md:grid-cols-2">
-            {g.teams.map((t) => (
-              <div key={t.id} className="rounded-md border border-slate-200 p-3">
-                <Link href={`/t/${t.id}`} className="font-medium text-blue-700 hover:underline">
-                  {t.name}
-                </Link>
-                <div className="mb-2 text-xs text-slate-500">{t.projectTitle ?? "No project title yet"}</div>
-                <div className="mb-2 space-x-3 text-xs">
-                  {["task", "schedule", "logtest", "week", "sumtask", "sums", "sump", "sumq", "ccr"].map((f) => (
-                    <Link key={f} href={`/t/${t.id}/forms/${f}`} className="text-blue-700 hover:underline">
-                      {f.toUpperCase()}
-                    </Link>
-                  ))}
-                </div>
-                <ul className="space-y-0.5 text-sm">
-                  {t.memberships.map((m) => (
-                    <li key={m.id} className="flex flex-wrap items-baseline justify-between gap-x-3">
-                      <span>
-                        {m.user.name} <span className="text-slate-500">{m.roles.map((r) => roleLabel(r.role)).join(", ")}</span>
-                      </span>
-                      <span className="space-x-2 text-xs">
-                        {["si", "logt", "logd", "logai", ...(isLecturer(user) ? ["peer"] : [])].map((f) => (
-                          <Link key={f} href={`/t/${t.id}/forms/${f}?member=${m.id}`} className="text-blue-700 hover:underline">
-                            {f.toUpperCase()}
-                          </Link>
-                        ))}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-            {g.teams.length === 0 && <p className="text-sm text-slate-500">No teams.</p>}
-          </div>
+      <PageHeader
+        title="Class overview"
+        subtitle={lecturer ? "All teams in the active semester" : "Teams in your lab groups"}
+        actions={
+          lecturer && (
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              {o.githubEnabled && <ActionButton url="/api/github/refresh" method="POST" body={{}} label="Refresh GitHub (next batch)" />}
+              <Link href="/monitor/settings" className="text-blue-700 hover:underline">
+                Flag settings
+              </Link>
+            </div>
+          )
+        }
+      />
+      {o.rows.length === 0 ? (
+        <Alert kind="info">No teams to monitor in the active semester.</Alert>
+      ) : (
+        <Card>
+          <OverviewTable rows={o.rows} />
         </Card>
-      ))}
+      )}
+      <Card title={`Needs attention (${attention.length})`}>
+        <p className="mb-3 text-sm text-slate-600">
+          Flags are prompts to look closer, not grades. Each shows its evidence; {lecturer ? "mark it reviewed or dismiss it with a reason." : "the lecturer reviews them."}
+        </p>
+        <FlagList flags={attention} canReview={lecturer} showTeam emptyText="Nothing needs attention right now." />
+      </Card>
     </div>
   );
 }

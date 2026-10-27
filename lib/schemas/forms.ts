@@ -378,3 +378,17 @@ export const commentSchema = z.object({
   recordId: optionalId,
   body: requiredText("a comment", 2000),
 });
+
+// ---------- Monitoring ----------
+
+export const flagReviewSchema = z.object({
+  membershipId: z.string().min(1),
+  type: z.enum(["LOW_SHARE", "INACTIVE", "HOURS_NO_OUTPUT", "BACKFILL", "PEER_MISMATCH", "MISSING_FORMS"]),
+  periodKey: z.string().min(1).max(40),
+  status: z.enum(["OPEN", "REVIEWED", "DISMISSED"]),
+  reason: optionalText(1000),
+}).refine((v) => v.status !== "DISMISSED" || !!v.reason, { path: ["reason"], message: "Give a reason for dismissing the flag" });
+
+export const noteSchema = z
+  .object({ teamId: optionalId, membershipId: optionalId, body: requiredText("the note", 4000) })
+  .refine((v) => !!v.teamId !== !!v.membershipId, { path: ["body"], message: "A note is about a team or a member" });
