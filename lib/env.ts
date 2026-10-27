@@ -1,4 +1,5 @@
 import { z } from "@/lib/schemas/zod";
+import { connectionStringProblem } from "@/lib/deploy/db-urls";
 
 /**
  * Environment variables, validated once. Required variables missing → a clear error at startup
@@ -62,6 +63,12 @@ export function getEnv(): Env {
     }
     if (parsed.data.DIRECT_URL === undefined && parsed.data.DATABASE_URL_UNPOOLED === undefined) {
       problems.push("DIRECT_URL (or DATABASE_URL_UNPOOLED): the direct Neon connection is required on Vercel deployments");
+    }
+  }
+  if (parsed.success) {
+    for (const key of ["DATABASE_URL", "DIRECT_URL", "DATABASE_URL_UNPOOLED"] as const) {
+      const problem = connectionStringProblem(key, parsed.data[key]);
+      if (problem) problems.push(problem);
     }
   }
   if (problems.length > 0 || !parsed.success) {
