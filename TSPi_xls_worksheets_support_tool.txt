@@ -1,0 +1,24 @@
+
+TSPi.xls worksheets
+
+
+Worksheet forms support
+
+1. TSPi.xls includes these TSPi forms implemented as worksheets.
+
+	a. Defect Recording Log (LOGD)
+	b. Time Recording Log (LOGT)
+	c. Schedule Plan Template (SCHEDULE)
+	d. Program Plan Summary (SUMP)
+	e. Quality Plan Summary (SUMQ)
+	f. Size Summary (SUMS)
+	g. Task Plan Template (TASK)
+
+2. Other worksheets included with TSPi.xls, and their purposes, are as follows.
+
+	a. Instructions: step-by-step instructions for planning and tracking
+	b. Project: a project summary
+	c. Team: team member information
+	d. Roles: role assignments
+	e. Defect Types: the defect types allowed on the LOGD worksheet
+	f. QprofParam: the parameters used for calculating the five points on a quality profile chart
