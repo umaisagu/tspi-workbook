@@ -19,7 +19,7 @@ export const FORM_INFO: Record<FormType, { slug: string; title: string; descript
 };
 
 /** Forms whose pages exist so far. */
-export const AVAILABLE_FORMS: FormType[] = ["SI", "LOGT", "LOGD", "LOGAI", "TASK", "SCHEDULE", "SUMTASK"];
+export const AVAILABLE_FORMS: FormType[] = ["SI", "LOGT", "LOGD", "LOGAI", "TASK", "SCHEDULE", "SUMTASK", "SUMS", "SUMP", "SUMQ"];
 
 export function formFromSlug(slug: string): FormType | undefined {
   return (Object.keys(FORM_INFO) as FormType[]).find((f) => FORM_INFO[f].slug === slug);

@@ -10,6 +10,12 @@ import { loadPlanning } from "@/lib/server/forms/planning";
 import { TaskForm } from "@/components/forms/task-form";
 import { ScheduleForm } from "@/components/forms/schedule-form";
 import { SumTaskView } from "@/components/forms/sumtask-view";
+import { SumsForm } from "@/components/forms/sums-form";
+import { SumpView } from "@/components/forms/sump-view";
+import { SumqView } from "@/components/forms/sumq-view";
+import { ScopePicker } from "@/components/forms/scope-picker";
+import { QualityPlanEditor } from "@/components/forms/quality-plan-editor";
+import { loadSumpSumq, loadSums } from "@/lib/server/forms/quality";
 import { PlanningCharts } from "@/components/charts/planning-charts";
 import { AVAILABLE_FORMS, FORM_INFO, formFromSlug } from "@/lib/forms";
 import { HttpError } from "@/lib/server/http";
@@ -48,7 +54,6 @@ const dateFmt = new Intl.DateTimeFormat("en-MY", { dateStyle: "medium", timeStyl
 export default async function FormPage({ params, searchParams }: PageProps<"/t/[teamId]/forms/[form]">) {
   const user = await requirePageUser();
   const { teamId, form: slug } = await params;
-  const sp = await searchParams;
   const form = formFromSlug(slug);
   if (!form || !AVAILABLE_FORMS.includes(form)) notFound();
 
@@ -57,7 +62,10 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
     include: { labGroup: { include: { semester: true } } },
   });
   if (!team) notFound();
-  if (!FORM_INFO[form].individual) return <TeamFormPage user={user} team={team} form={form} />;
+  const sp = await searchParams;
+  if (!FORM_INFO[form].individual) {
+    return <TeamFormPage user={user} team={team} form={form} component={typeof sp.component === "string" ? sp.component : null} />;
+  }
   const teammates = await listTeammates(teamId);
   const own = activeMembershipIn(user, teamId);
   const memberParam = typeof sp.member === "string" ? sp.member : undefined;
@@ -189,7 +197,7 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
 type TeamWithSemester = Prisma.TeamGetPayload<{ include: { labGroup: { include: { semester: true } } } }>;
 
 /** Team-level forms: TASK, SCHEDULE, SUMTASK (read by the team and its staff; edited by the Team Leader). */
-async function TeamFormPage({ user, team, form }: { user: CurrentUser; team: TeamWithSemester; form: FormType }) {
+async function TeamFormPage({ user, team, form, component }: { user: CurrentUser; team: TeamWithSemester; form: FormType; component: string | null }) {
   if (!canReadTeamForms(user, team)) notFound();
   const [planning, comments, components, teammates] = await Promise.all([
     loadPlanning(team.id),
@@ -224,10 +232,39 @@ async function TeamFormPage({ user, team, form }: { user: CurrentUser; team: Tea
         />
       </div>
     );
-  } else {
+  } else if (form === "SUMTASK") {
     body = <SumTaskView data={planning.sumtask} />;
+  } else if (form === "SUMS") {
+    const sums = await loadSums(team.id);
+    body = (
+      <div className="space-y-3">
+        <SumsForm teamId={team.id} rows={sums.rows} canEdit={canEdit} />
+        <p className="text-xs text-slate-500">
+          B/D/M/A/R = base, deleted, modified, added, reused. N&amp;C = modified + added; Total = base − deleted + added + reused. Not linked to a
+          component: {sums.unassigned.hours} h logged, {sums.unassigned.defects} defects. Components are added on the Team page.
+        </p>
+      </div>
+    );
+  } else {
+    const q = await loadSumpSumq(team.id, component);
+    body = (
+      <div className="space-y-5">
+        <ScopePicker scopes={q.scopes} current={q.scope} />
+        {form === "SUMP" ? (
+          <SumpView sump={q.sump} />
+        ) : (
+          <>
+            <SumqView sumq={q.sumq} isSystem={q.scope === null} />
+            <Card title="Quality plan (inputs)">
+              <QualityPlanEditor teamId={team.id} rates={q.planInjectionRate} yields={q.planYield} usingDefaults={q.usingDefaults} canEdit={canEdit} />
+            </Card>
+          </>
+        )}
+      </div>
+    );
   }
-  const readOnly = form === "SUMTASK" ? "computed from TASK and LOGT" : form === "SCHEDULE" ? null : !canEdit ? "read-only" : null;
+  const readOnly =
+    form === "SUMTASK" ? "computed from TASK and LOGT" : form === "SUMP" ? "computed" : form === "SCHEDULE" ? null : !canEdit ? "read-only" : null;
   return (
     <div className="space-y-5">
       <PageHeader

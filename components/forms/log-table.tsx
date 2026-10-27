@@ -58,6 +58,10 @@ export function LogTable<Row extends BaseRow>({
   preview,
   addLabel = "Add entry",
   emptyText = "No entries yet.",
+  allowAdd = true,
+  allowDelete = true,
+  updateMethod = "PATCH",
+  editLabel = "Edit",
 }: {
   title?: string;
   rows: Row[];
@@ -77,6 +81,11 @@ export function LogTable<Row extends BaseRow>({
   preview?: (values: FormValues) => ReactNode;
   addLabel?: string;
   emptyText?: string;
+  /** Rows are created elsewhere (e.g. SUMS sizes edit existing components). */
+  allowAdd?: boolean;
+  allowDelete?: boolean;
+  updateMethod?: "PATCH" | "PUT";
+  editLabel?: string;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<{ id: string | null; values: FormValues } | null>(null);
@@ -109,7 +118,7 @@ export function LogTable<Row extends BaseRow>({
     setFormError(undefined);
     if (!validate(editing.values)) return;
     setPending(true);
-    const r = editing.id ? await sendJson(rowUrl(editing.id), "PATCH", editing.values) : await sendJson(createUrl, "POST", editing.values);
+    const r = editing.id ? await sendJson(rowUrl(editing.id), updateMethod, editing.values) : await sendJson(createUrl, "POST", editing.values);
     setPending(false);
     if (!r.ok) {
       setFormError(r.error);
@@ -158,7 +167,7 @@ export function LogTable<Row extends BaseRow>({
             </label>
           )}
         </div>
-        {canEdit && !editing && (
+        {canEdit && allowAdd && !editing && (
           <Button
             onClick={() => {
               setErrors({});
@@ -180,7 +189,7 @@ export function LogTable<Row extends BaseRow>({
           }}
           noValidate
         >
-          <h3 className="text-sm font-semibold">{editing.id ? "Edit entry" : addLabel}</h3>
+          <h3 className="text-sm font-semibold">{editing.id ? editLabel : addLabel}</h3>
           {formError && <Alert>{formError}</Alert>}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {fields.map((f) => (
@@ -280,11 +289,13 @@ export function LogTable<Row extends BaseRow>({
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                       >
-                        Edit
+                        {editLabel}
                       </button>
-                      <button type="button" className="text-red-700 hover:underline" onClick={() => remove(row.id)}>
-                        Delete
-                      </button>
+                      {allowDelete && (
+                        <button type="button" className="text-red-700 hover:underline" onClick={() => remove(row.id)}>
+                          Delete
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>

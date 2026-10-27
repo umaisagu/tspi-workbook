@@ -12,6 +12,13 @@ import { COMMITMENT_DAYS, COMMITMENT_SLOTS, SKILL_AREAS } from "../lib/tsp/stude
 
 export type Profile = "normal" | "high" | "low" | "inactive" | "backfill";
 
+export interface SeedComponent {
+  id: string;
+  name: string;
+  role: "req" | "design" | "code";
+  ownerMembershipId: string | null;
+}
+
 export interface SeedMember {
   membershipId: string;
   userId: string;
@@ -56,7 +63,23 @@ const FOCUS_PHASES: Record<SeedMember["focus"], Phase[]> = {
   support: ["DOC", "MGMT"],
 };
 const HOURS_PER_WEEK: Record<Profile, number> = { normal: 5, high: 7.5, low: 2.5, inactive: 4, backfill: 4.5 };
-const DOC_PHASES: Phase[] = ["STRAT", "PLAN", "REQ", "STP", "REQINSP", "HLD", "HLDINSP", "ITP", "DOC", "PM"];
+const REQ_PHASES: Phase[] = ["STRAT", "PLAN", "REQ", "STP", "REQINSP", "DOC", "PM"];
+const DESIGN_PHASES: Phase[] = ["HLD", "HLDINSP", "ITP"];
+
+/** Defects found so far, by who would find them (TSPi: inspections and reviews first). */
+const DEFECTS: { week: number; focus: SeedMember["focus"][]; type: number; inj: Phase; rem: Phase; desc: string }[] = [
+  { week: 4, focus: ["plan"], type: 10, inj: "REQ", rem: "REQ", desc: "Duplicate requirement FR-06 merged into FR-02" },
+  { week: 5, focus: ["qa", "plan"], type: 10, inj: "REQ", rem: "REQINSP", desc: "FR-04 acceptance criteria missing" },
+  { week: 5, focus: ["qa"], type: 80, inj: "REQ", rem: "REQINSP", desc: "FR-09 contradicts the client's booking rule" },
+  { week: 5, focus: ["qa", "lead"], type: 10, inj: "REQ", rem: "REQINSP", desc: "Ambiguous wording in non-functional requirement NFR-02" },
+  { week: 5, focus: ["qa"], type: 10, inj: "STP", rem: "REQINSP", desc: "System test plan has no test for offline mode" },
+  { week: 6, focus: ["dev", "qa"], type: 50, inj: "HLD", rem: "HLDINSP", desc: "AI service interface does not match the SDS sequence diagram" },
+  { week: 6, focus: ["dev"], type: 70, inj: "HLD", rem: "HLDINSP", desc: "ERD missing the relationship between user and listing" },
+  { week: 6, focus: ["dev"], type: 80, inj: "DLD", rem: "DLDR", desc: "State not reset after logout in the login flow design" },
+  { week: 7, focus: ["dev"], type: 80, inj: "CODE", rem: "CR", desc: "Null check missing on optional API field" },
+  { week: 7, focus: ["dev"], type: 20, inj: "CODE", rem: "COMPILE", desc: "Wrong import path after refactor" },
+  { week: 7, focus: ["qa", "dev"], type: 70, inj: "CODE", rem: "UT", desc: "Date parsed in UTC instead of local time" },
+];
 
 function pick<T>(r: () => number, items: readonly T[]): T {
   return items[Math.floor(r() * items.length)]!;
@@ -103,7 +126,7 @@ export async function seedLogs(
   opts: {
     teamId: string;
     members: SeedMember[];
-    components: { id: string; name: string; code: boolean }[];
+    components: SeedComponent[];
     /** TASK rows to link LOGT sessions to (same phase, own tasks first, nearest plan week). */
     tasks?: { id: string; phase: Phase; planWeek: number | null; assigneeId: string }[];
     week1: Date;
@@ -116,8 +139,11 @@ export async function seedLogs(
   const now = new Date();
   const today = localDate(now);
   const currentWeek = Math.max(3, Math.min(15, Math.floor((today.getTime() - opts.week1.getTime()) / (7 * 86400000)) + 1));
-  const docComponent = opts.components.find((c) => !c.code);
-  const codeComponents = opts.components.filter((c) => c.code);
+  const reqComponent = opts.components.find((c) => c.role === "req")!;
+  const designComponent = opts.components.find((c) => c.role === "design")!;
+  const codeComponents = opts.components.filter((c) => c.role === "code");
+  const componentFor = (p: Phase): string | null =>
+    REQ_PHASES.includes(p) ? reqComponent.id : DESIGN_PHASES.includes(p) ? designComponent.id : p === "MGMT" ? null : pick(r, codeComponents).id;
 
   for (const m of opts.members) {
     const audit = { createdById: m.userId, updatedById: m.userId };
@@ -133,7 +159,7 @@ export async function seedLogs(
         const candidates = own.length > 0 ? own : samePhase;
         candidates.sort((a, b) => Math.abs((a.planWeek ?? 99) - week) - Math.abs((b.planWeek ?? 99) - week));
         const taskId = candidates.length > 0 && r() < 0.85 ? candidates[0]!.id : null;
-        const componentId = DOC_PHASES.includes(s.phase) ? (docComponent?.id ?? null) : s.phase === "MGMT" ? null : pick(r, codeComponents).id;
+        const componentId = componentFor(s.phase);
         const loggedAt = backfilled
           ? // all entered in one evening session, an hour or two before the deadline
             new Date(opts.latestDeadline.getTime() - (3 * 60 - Math.floor(r() * 80)) * 60000)
@@ -160,23 +186,12 @@ export async function seedLogs(
 
     // ----- LOGD -----
     if (m.profile !== "inactive") {
-      const defects: { week: number; type: number; inj: Phase; rem: Phase; desc: string }[] = [];
-      if (currentWeek >= 5 && (m.focus === "qa" || m.focus === "plan")) {
-        defects.push({ week: 5, type: 10, inj: "REQ", rem: "REQINSP", desc: "FR-04 acceptance criteria missing" });
-        defects.push({ week: 5, type: 10, inj: "REQ", rem: "REQINSP", desc: "Ambiguous wording in non-functional requirement NFR-02" });
-      }
-      if (currentWeek >= 6 && (m.focus === "dev" || m.focus === "qa")) {
-        defects.push({ week: 6, type: 50, inj: "HLD", rem: "HLDINSP", desc: "Service interface for AI feature does not match SDS sequence diagram" });
-      }
-      if (currentWeek >= 7 && m.focus === "dev") {
-        defects.push({ week: 7, type: 80, inj: "CODE", rem: "CR", desc: "Null check missing on optional API field" });
-        defects.push({ week: 7, type: 70, inj: "CODE", rem: "UT", desc: "Date parsed in UTC instead of local time" });
-      }
       let number = 0;
-      for (const d of defects) {
+      for (const d of DEFECTS.filter((x) => x.focus.includes(m.focus) && x.week <= currentWeek)) {
+        const monday = weekStart(d.week, opts.week1).getTime();
+        const daysSoFar = Math.min(5, Math.floor((today.getTime() - monday) / 86400000) + 1);
+        const date = new Date(monday + Math.floor(r() * daysSoFar) * 86400000);
         number++;
-        const date = new Date(weekStart(d.week, opts.week1).getTime() + Math.floor(r() * 5) * 86400000);
-        if (date > today) continue;
         const at = new Date(myTime(date, 18 + Math.floor(r() * 4), 0));
         await db.defectLog.create({
           data: {
@@ -184,7 +199,7 @@ export async function seedLogs(
             number,
             date,
             type: d.type,
-            componentId: DOC_PHASES.includes(d.inj) ? (docComponent?.id ?? null) : pick(r, codeComponents).id,
+            componentId: componentFor(d.inj),
             phaseInjected: d.inj,
             phaseRemoved: d.rem,
             fixTimeMin: 5 + Math.floor(r() * 40),

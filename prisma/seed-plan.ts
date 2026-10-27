@@ -6,27 +6,27 @@
 import type { Phase, PrismaClient } from "../generated/prisma/client";
 import { planTasks } from "../lib/tsp/earned-value";
 import { localDate, weekStart } from "../lib/tsp/calendar";
-import { rng, type SeedMember } from "./seed-logs";
+import { rng, type SeedComponent, type SeedMember } from "./seed-logs";
 
 interface TaskTemplate {
   name: string;
   phase: Phase;
   hours: number;
   who: SeedMember["focus"] | "owner";
-  component: "doc" | number | null;
+  component: "req" | "design" | number | null;
 }
 
 function template(codeComponents: number): TaskTemplate[] {
   const t: TaskTemplate[] = [
     { name: "Launch and strategy meeting", phase: "STRAT", hours: 6, who: "lead", component: null },
-    { name: "Project plan: TASK and SCHEDULE", phase: "PLAN", hours: 8, who: "plan", component: "doc" },
-    { name: "Client requirements elicitation", phase: "REQ", hours: 10, who: "plan", component: "doc" },
-    { name: "SRS draft with FR-IDs", phase: "REQ", hours: 10, who: "lead", component: "doc" },
-    { name: "System test plan", phase: "STP", hours: 6, who: "qa", component: "doc" },
-    { name: "SRS inspection", phase: "REQINSP", hours: 4, who: "qa", component: "doc" },
-    { name: "Proposal and M1 package", phase: "DOC", hours: 6, who: "support", component: "doc" },
-    { name: "High-level design (SDS, UML, ERD)", phase: "HLD", hours: 10, who: "dev", component: "doc" },
-    { name: "HLD inspection", phase: "HLDINSP", hours: 4, who: "qa", component: "doc" },
+    { name: "Project plan: TASK and SCHEDULE", phase: "PLAN", hours: 8, who: "plan", component: "req" },
+    { name: "Client requirements elicitation", phase: "REQ", hours: 10, who: "plan", component: "req" },
+    { name: "SRS draft with FR-IDs", phase: "REQ", hours: 10, who: "lead", component: "req" },
+    { name: "System test plan", phase: "STP", hours: 6, who: "qa", component: "req" },
+    { name: "SRS inspection", phase: "REQINSP", hours: 4, who: "qa", component: "req" },
+    { name: "Proposal and M1 package", phase: "DOC", hours: 6, who: "support", component: "req" },
+    { name: "High-level design (SDS, UML, ERD)", phase: "HLD", hours: 10, who: "dev", component: "design" },
+    { name: "HLD inspection", phase: "HLDINSP", hours: 4, who: "qa", component: "design" },
   ];
   for (let c = 0; c < codeComponents; c++) {
     t.push(
@@ -39,7 +39,7 @@ function template(codeComponents: number): TaskTemplate[] {
   t.push(
     { name: "Integration tests", phase: "IT", hours: 8, who: "qa", component: null },
     { name: "System test and UAT with client", phase: "ST", hours: 8, who: "qa", component: null },
-    { name: "README and user manual", phase: "DOC", hours: 8, who: "support", component: "doc" },
+    { name: "README and user manual", phase: "DOC", hours: 8, who: "support", component: "req" },
     { name: "Weekly meetings and WEEK reports", phase: "MGMT", hours: 10, who: "lead", component: null },
     { name: "Postmortem", phase: "PM", hours: 3, who: "lead", component: null },
   );
@@ -54,7 +54,7 @@ export async function seedPlan(
   opts: {
     teamId: string;
     members: SeedMember[];
-    components: { id: string; name: string; code: boolean; ownerMembershipId: string | null }[];
+    components: SeedComponent[];
     week1: Date;
     weekCount: number;
     breakWeeks: number[];
@@ -64,8 +64,9 @@ export async function seedPlan(
   const r = rng(opts.seed);
   const today = localDate(new Date());
   const currentWeek = Math.floor((today.getTime() - opts.week1.getTime()) / (7 * 86400000)) + 1;
-  const doc = opts.components.find((c) => !c.code)!;
-  const code = opts.components.filter((c) => c.code);
+  const req = opts.components.find((c) => c.role === "req")!;
+  const design = opts.components.find((c) => c.role === "design")!;
+  const code = opts.components.filter((c) => c.role === "code");
   const byFocus = (f: SeedMember["focus"]) => opts.members.filter((m) => m.focus === f);
   const leader = opts.members[0]!;
   const audit = { createdById: leader.userId, updatedById: leader.userId };
@@ -74,14 +75,14 @@ export async function seedPlan(
   const tmpl = template(code.length);
   let devTurn = 0;
   const rows = tmpl.map((t, i) => {
-    const component = t.component === "doc" ? doc : t.component === null ? null : code[t.component]!;
+    const component = t.component === "req" ? req : t.component === "design" ? design : t.component === null ? null : code[t.component]!;
     let assignee: SeedMember;
     if (t.who === "owner") assignee = opts.members.find((m) => m.membershipId === component?.ownerMembershipId) ?? leader;
     else {
       const pool = byFocus(t.who);
       assignee = pool.length ? pool[devTurn++ % pool.length]! : leader;
     }
-    const label = component && component !== doc && t.component !== null ? `${t.name}: ${component.name}` : t.name;
+    const label = typeof t.component === "number" && component ? `${t.name}: ${component.name}` : t.name;
     return { order: i + 1, name: label, phase: t.phase, hours: t.hours, componentId: component?.id ?? null, assignee };
   });
   // SCHEDULE: weeks 3..weekCount except breaks, at each member's planned weekly hours.

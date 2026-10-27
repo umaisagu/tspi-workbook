@@ -115,6 +115,9 @@ With `N` = new and changed LOC (SUMP row 15), all ratios 0 when the denominator 
 - **Defect injection rates** (actual): `injected in phase / hours in phase`.
 - **Defect removal rates** (plan and actual): `removed in phase / hours in phase`.
 - Plan inputs: planned defect injection rate and planned phase yield per phase.
+- *App: planned defects injected = plan rate × plan hours; planned removed = plan yield × defects present
+  (escaped from earlier phases + injected in the phase); AT removes its yield of what escapes ST, the rest is
+  Product Life. Ratios with a zero denominator show "—" instead of 0.*
 
 ## PROJECT charts
 

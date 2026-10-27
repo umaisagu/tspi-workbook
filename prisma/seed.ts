@@ -11,6 +11,10 @@ import { MILESTONE_DEFAULTS, milestoneDueAt } from "../lib/tsp/milestones";
 import type { TspiRole } from "../generated/prisma/enums";
 import { seedLogs, type Profile, type SeedMember } from "./seed-logs";
 import { seedPlan } from "./seed-plan";
+import type { SeedComponent } from "./seed-logs";
+import { localDate, weekOf } from "../lib/tsp/calendar";
+
+const localWeek = (week1: Date) => weekOf(localDate(new Date()), week1);
 
 const DEV_PASSWORD = "tspi-dev-2026";
 
@@ -184,29 +188,43 @@ async function main() {
         });
       }
       const leader = members[0]!;
-      const components = [
-        await db.component.create({
-          data: { teamId: team.id, name: "SRS & Proposal", sizeMeasure: "REQ_PAGES", createdById: leader.userId, updatedById: leader.userId },
-        }),
-      ];
+      // Components: SRS (requirements pages), SDS (HLD pages) and the app's code assemblies (LOC).
+      // Actual sizes reflect progress so far: documents mostly done, code just started.
+      const progress = Math.max(0, Math.min(1, (localWeek(week1Monday) - 5) / 9));
+      const components: SeedComponent[] = [];
+      const doc = async (name: string, measure: "REQ_PAGES" | "HLD_PAGES", plan: number, actual: number, role: SeedComponent["role"]) => {
+        const c = await db.component.create({
+          data: { teamId: team.id, name, sizeMeasure: measure, planAdded: plan, actAdded: actual, createdById: leader.userId, updatedById: leader.userId },
+        });
+        components.push({ id: c.id, name, role, ownerMembershipId: null });
+      };
+      await doc("SRS & Proposal", "REQ_PAGES", 30, localWeek(week1Monday) >= 5 ? 27 : 12, "req");
+      await doc("SDS & Design", "HLD_PAGES", 24, localWeek(week1Monday) >= 6 ? 9 : 0, "design");
       for (const [i, name] of t.components.entries()) {
-        components.push(
-          await db.component.create({
-            data: {
-              teamId: team.id,
-              name,
-              kind: "ASSEMBLY",
-              ownerMembershipId: members[(i + 1) % members.length]!.membershipId,
-              createdById: leader.userId,
-              updatedById: leader.userId,
-            },
-          }),
-        );
+        const owner = members[(i + 1) % members.length]!;
+        const planAdded = 600 + i * 150;
+        const c = await db.component.create({
+          data: {
+            teamId: team.id,
+            name,
+            kind: "ASSEMBLY",
+            sizeMeasure: "LOC",
+            ownerMembershipId: owner.membershipId,
+            planAdded,
+            planReused: i === 0 ? 120 : 0,
+            planNewReuse: i === 0 ? 0 : 40,
+            actAdded: Math.round(planAdded * progress * (0.6 + 0.2 * i)),
+            actReused: i === 0 && progress > 0 ? 120 : 0,
+            createdById: leader.userId,
+            updatedById: leader.userId,
+          },
+        });
+        components.push({ id: c.id, name, role: "code", ownerMembershipId: owner.membershipId });
       }
       const tasks = await seedPlan(db, {
         teamId: team.id,
         members,
-        components: components.map((c) => ({ id: c.id, name: c.name, code: c.name !== "SRS & Proposal", ownerMembershipId: c.ownerMembershipId })),
+        components,
         week1: week1Monday,
         weekCount: semester.weekCount,
         breakWeeks: semester.breakWeeks,
@@ -216,7 +234,7 @@ async function main() {
         teamId: team.id,
         members,
         tasks,
-        components: components.map((c) => ({ id: c.id, name: c.name, code: c.name !== "SRS & Proposal" })),
+        components,
         week1: week1Monday,
         breakWeeks: semester.breakWeeks,
         latestDeadline,

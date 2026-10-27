@@ -247,6 +247,47 @@ export const scheduleRowSchema = z.object({
     .max(30),
 });
 
+// ---------- SUMS sizes and SUMQ plan ----------
+
+const sizeCount = (label: string) => z.coerce.number({ error: `Enter ${label}` }).int(`${label} must be a whole number`).min(0, `${label} cannot be negative`).max(10_000_000);
+/** SUMS: plan and actual Base, Deleted, Modified, Added, Reused and New Reuse are entered (as in the workbook). */
+export const componentSizeSchema = z.object({
+  sizeMeasure: sizeMeasureSchema,
+  planBase: sizeCount("base"),
+  planDeleted: sizeCount("deleted"),
+  planModified: sizeCount("modified"),
+  planAdded: sizeCount("added"),
+  planReused: sizeCount("reused"),
+  planNewReuse: sizeCount("new reuse"),
+  actBase: sizeCount("base"),
+  actDeleted: sizeCount("deleted"),
+  actModified: sizeCount("modified"),
+  actAdded: sizeCount("added"),
+  actReused: sizeCount("reused"),
+  actNewReuse: sizeCount("new reuse"),
+});
+export type ComponentSizeInput = z.infer<typeof componentSizeSchema>;
+
+const optionalRate = z
+  .union([z.literal(""), z.null(), z.coerce.number().min(0, "Cannot be negative").max(100)])
+  .optional()
+  .transform((v) => (v === "" || v === null || v === undefined ? null : v));
+
+/** SUMQ plan inputs per phase: defects injected per hour, and phase yield (0–1). */
+export const qualityPlanSchema = z.object({
+  reset: z.boolean().optional(),
+  rows: z
+    .array(
+      z.object({
+        phase: phaseSchema,
+        planInjectionRate: optionalRate,
+        planYield: optionalRate.refine((v) => v === null || v <= 1, "Yield is a fraction between 0 and 1"),
+      }),
+    )
+    .max(30)
+    .default([]),
+});
+
 // ---------- Components and comments ----------
 
 export const componentSchema = z.object({

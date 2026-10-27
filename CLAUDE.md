@@ -56,7 +56,7 @@ components/ui|roster|admin|forms   forms/log-table.tsx = generic editable table 
 lib/forms.ts            form slugs/titles; AVAILABLE_FORMS lists the forms with pages
 lib/server/forms/       access.ts (individualFormAccess / requireTeamForm), refs.ts (cross-record checks), loaders
 lib/tsp/                pure TSPi formulas + tests (calendar, phases, roles, milestones, time, defects, ai-log, student-info,
-                        earned-value (TASK/SCHEDULE/EV/predictions), sumtask)
+                        earned-value (TASK/SCHEDULE/EV/predictions), sumtask, sizes (SUMS), quality (SUMP/SUMQ))
 lib/monitoring/         pure contribution-flag logic + tests (Stage 6)
 lib/auth/               Auth.js config, permissions.ts (pure, tested), email/rate-limit helpers
 lib/schemas/            Zod schemas (shared)
@@ -128,6 +128,22 @@ docs/                   course reference material (do not edit) + workbook-formu
 - Charts use the dataviz reference palette slots 1–2 (blue #2a78d6 planned, orange #eb6834 earned/actual,
   dashed orange predicted); validated with the dataviz validator. One y-axis per chart.
 
+## Size and quality rules (Stage 4)
+
+- SUMS (Team Leader edits sizes; team reads): per component a size measure and plan/actual Base, Deleted,
+  Modified, Added, Reused, New Reuse are entered. N&C = M + A; Total = N + B − D − M + R (= B − D + A + R).
+  Validation: deleted ≤ base, modified ≤ base − deleted, new reuse ≤ added. Components themselves are added on
+  the Team page. Hierarchy via `parentId`; roll-ups add up leaf components only.
+- SUMP / SUMQ (computed; `?component=<id>` for one assembly, default SYSTEM): plan time from TASK, actual time
+  from LOGT, actual defects from LOGD, sizes from SUMS — all filtered to the assembly and its parts (SYSTEM
+  includes records with no component). Planned defects: injected = plan rate × plan hours; removed = plan yield ×
+  defects present; after ST: AT removes its yield, the rest is Product Life.
+- SUMQ plan inputs (`QualityPlan`, SYSTEM only): per phase defects injected/hour and yield (0–1); Team Leader
+  edits; with no rows the workbook guidelines (`DEFAULT_PLAN_YIELDS`, `DEFAULT_INJECTION_RATES`) apply.
+- Ratios with a zero denominator are null and shown as "—" (the workbook shows 0). Goals from QualGuide are
+  shown next to SUMQ values.
+- Code: `lib/tsp/sizes.ts`, `lib/tsp/quality.ts`, loader `lib/server/forms/quality.ts`.
+
 ## Decisions (defaults chosen at plan approval; change here if the lecturer decides otherwise)
 
 1. SUMS plan/actual sizes (Base, Deleted, Modified, Added, Reused), SUMQ plan injection rates and plan
@@ -159,5 +175,5 @@ docs/                   course reference material (do not edit) + workbook-formu
 ## Stages
 
 1. ✅ Setup, schema, auth and roles  2. ✅ FORM-SI, LOGT, LOGD, LOGAI  3. ✅ TASK, SCHEDULE, EV, SUMTASK
-4. SUMS, SUMP, SUMQ  5. LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
+4. ✅ SUMS, SUMP, SUMQ  5. LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
 6. Monitoring, flags, GitHub, exports  7. Production hardening, Vercel/Neon, cron, backups, DEPLOY.md

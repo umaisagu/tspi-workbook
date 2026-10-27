@@ -60,7 +60,7 @@ export default async function FormsPage() {
           </Link>
         ))}
       </div>
-      <Alert kind="info">LOGTEST, WEEK, PEER, CCR and the size and quality summaries arrive in the next stages.</Alert>
+      <Alert kind="info">LOGTEST, WEEK, PEER and CCR arrive in the next stage.</Alert>
     </div>
   );
 }
