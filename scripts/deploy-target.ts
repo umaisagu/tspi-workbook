@@ -1,8 +1,9 @@
 /**
  * Build guard: `check` runs before `prisma migrate deploy`, `mark` after it.
  * Stops the build when the database belongs to another environment (e.g. a preview build pointed at production).
- * Uses DIRECT_URL (like the migration) and falls back to DATABASE_URL.
+ * Uses the direct connection (DIRECT_URL or DATABASE_URL_UNPOOLED, like the migration), else DATABASE_URL.
  */
+import { directDatabaseUrl } from "../lib/deploy/db-urls";
 import { checkTarget, deployTarget } from "../lib/deploy/target";
 import { scriptClient } from "./db-client";
 
@@ -10,7 +11,7 @@ async function main() {
   const mode = process.argv[2];
   if (mode !== "check" && mode !== "mark") throw new Error("Usage: tsx scripts/deploy-target.ts check|mark");
   const target = deployTarget(process.env.VERCEL_ENV);
-  const db = scriptClient(process.env.DIRECT_URL || process.env.DATABASE_URL);
+  const db = scriptClient(directDatabaseUrl());
   try {
     const rows = await db.$queryRaw<{ exists: boolean }[]>`SELECT to_regclass('public."AppMeta"') IS NOT NULL AS exists`;
     const exists = rows[0]?.exists === true;
