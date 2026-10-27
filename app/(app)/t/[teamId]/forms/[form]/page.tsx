@@ -2,7 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { activeMembershipIn, canComment, canEditScheduleRow, canEditTeamForms, canReadTeamForms, isStaff } from "@/lib/auth/permissions";
+import {
+  activeMembershipIn,
+  canAddTeamRow,
+  canComment,
+  canDecideChange,
+  canEditOwnTeamRow,
+  canEditScheduleRow,
+  canEditTeamForms,
+  canReadTeamForms,
+  isStaff,
+} from "@/lib/auth/permissions";
+import { listChangeRequests, listTests, loadPeer, loadWeekReports } from "@/lib/server/forms/team-forms";
+import { LogtestForm } from "@/components/forms/logtest-form";
+import { CcrForm } from "@/components/forms/ccr-form";
+import { WeekForm } from "@/components/forms/week-form";
+import { PeerForm } from "@/components/forms/peer-form";
 import type { FormType } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import type { CurrentUser } from "@/lib/server/viewer";
@@ -64,7 +79,15 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
   if (!team) notFound();
   const sp = await searchParams;
   if (!FORM_INFO[form].individual) {
-    return <TeamFormPage user={user} team={team} form={form} component={typeof sp.component === "string" ? sp.component : null} />;
+    return (
+      <TeamFormPage
+        user={user}
+        team={team}
+        form={form}
+        component={typeof sp.component === "string" ? sp.component : null}
+        weekParam={typeof sp.week === "string" && /^\d+$/.test(sp.week) ? Number(sp.week) : null}
+      />
+    );
   }
   const teammates = await listTeammates(teamId);
   const own = activeMembershipIn(user, teamId);
@@ -89,7 +112,7 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
   const owner = await db.membership.findUniqueOrThrow({ where: { id: ctx.ownerMembershipId }, include: { user: true } });
   const week1 = team.labGroup.semester.week1Monday;
   const hidden = team.labGroup.semester.hiddenPhases;
-  const comments = await listComments(teamId, form, ctx.ownerMembershipId);
+  const comments = form === "PEER" ? [] : await listComments(teamId, form, ctx.ownerMembershipId);
   const staffView = isStaff(user);
 
   let body: React.ReactNode;
@@ -135,6 +158,16 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
           </Card>
         )}
       </div>
+    );
+  } else if (form === "PEER") {
+    const peer = await loadPeer(teamId, ctx.ownerMembershipId);
+    const requested = typeof sp.milestone === "string" ? sp.milestone : null;
+    // default: the next milestone not yet due, else the last one
+    const milestoneId = peer.milestones.find((m) => m.id === requested)?.id ?? peer.milestones.find((m) => !m.pastDue)?.id ?? peer.milestones.at(-1)?.id;
+    body = milestoneId ? (
+      <PeerForm key={milestoneId} teamId={teamId} data={peer} canEdit={ctx.canEdit} milestoneId={milestoneId} memberQuery={staffView ? `&member=${ctx.ownerMembershipId}` : ""} />
+    ) : (
+      <Alert kind="info">No milestone collects PEER evaluations.</Alert>
     );
   } else {
     const stored = await loadStudentInfo(ctx.ownerMembershipId);
@@ -184,9 +217,11 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
         }
       />
       {body}
-      <Card title="Comments">
-        <CommentsPanel teamId={teamId} form={form} membershipId={ctx.ownerMembershipId} comments={comments} canComment={canComment(user, team)} />
-      </Card>
+      {form !== "PEER" && (
+        <Card title="Comments">
+          <CommentsPanel teamId={teamId} form={form} membershipId={ctx.ownerMembershipId} comments={comments} canComment={canComment(user, team)} />
+        </Card>
+      )}
       <p className="text-xs text-slate-500">
         {comments.length > 0 ? `Last comment ${dateFmt.format(new Date(comments.at(-1)!.createdAt))}. ` : ""}Entries keep who created and changed them, and when.
       </p>
@@ -197,7 +232,19 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
 type TeamWithSemester = Prisma.TeamGetPayload<{ include: { labGroup: { include: { semester: true } } } }>;
 
 /** Team-level forms: TASK, SCHEDULE, SUMTASK (read by the team and its staff; edited by the Team Leader). */
-async function TeamFormPage({ user, team, form, component }: { user: CurrentUser; team: TeamWithSemester; form: FormType; component: string | null }) {
+async function TeamFormPage({
+  user,
+  team,
+  form,
+  component,
+  weekParam,
+}: {
+  user: CurrentUser;
+  team: TeamWithSemester;
+  form: FormType;
+  component: string | null;
+  weekParam: number | null;
+}) {
   if (!canReadTeamForms(user, team)) notFound();
   const [planning, comments, components, teammates] = await Promise.all([
     loadPlanning(team.id),
@@ -234,6 +281,34 @@ async function TeamFormPage({ user, team, form, component }: { user: CurrentUser
     );
   } else if (form === "SUMTASK") {
     body = <SumTaskView data={planning.sumtask} />;
+  } else if (form === "LOGTEST") {
+    const rows = await listTests(team.id, team.labGroup.semester.week1Monday);
+    body = (
+      <LogtestForm
+        teamId={team.id}
+        rows={rows}
+        canAdd={canAddTeamRow(user, team)}
+        editableIds={rows.filter((r) => canEditOwnTeamRow(user, team, r.authorMembershipId)).map((r) => r.id)}
+        isLeader={canEditTeamForms(user, team)}
+        members={teammates.map((t) => ({ value: t.membershipId, label: t.name }))}
+      />
+    );
+  } else if (form === "CCR") {
+    const rows = await listChangeRequests(team.id);
+    const leader = canDecideChange(user, team);
+    body = (
+      <CcrForm
+        teamId={team.id}
+        rows={rows}
+        canAdd={canAddTeamRow(user, team)}
+        canDecide={leader}
+        editableIds={rows.filter((r) => leader || (canEditOwnTeamRow(user, team, r.requesterMembershipId) && r.status === "SUBMITTED")).map((r) => r.id)}
+        components={components.map((c) => ({ value: c.id, label: c.name }))}
+      />
+    );
+  } else if (form === "WEEK") {
+    const w = await loadWeekReports(team.id, weekParam);
+    body = <WeekForm key={w.week ?? "none"} teamId={team.id} list={w.list} week={w.week} report={w.report} live={w.live} canEdit={canEdit} />;
   } else if (form === "SUMS") {
     const sums = await loadSums(team.id);
     body = (
@@ -264,7 +339,15 @@ async function TeamFormPage({ user, team, form, component }: { user: CurrentUser
     );
   }
   const readOnly =
-    form === "SUMTASK" ? "computed from TASK and LOGT" : form === "SUMP" ? "computed" : form === "SCHEDULE" ? null : !canEdit ? "read-only" : null;
+    form === "SUMTASK"
+      ? "computed from TASK and LOGT"
+      : form === "SUMP"
+        ? "computed"
+        : form === "SCHEDULE" || form === "LOGTEST" || form === "CCR"
+          ? null
+          : !canEdit
+            ? "read-only"
+            : null;
   return (
     <div className="space-y-5">
       <PageHeader

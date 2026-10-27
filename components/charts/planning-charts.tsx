@@ -1,6 +1,7 @@
 "use client";
 
-import { LineChart, SERIES_COLORS } from "./line-chart";
+import { LineChart } from "./line-chart";
+import { SERIES_COLORS } from "./colors";
 
 interface WeekPoint {
   week: number;

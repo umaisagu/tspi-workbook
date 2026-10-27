@@ -3,6 +3,7 @@ import type { FormType } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import {
   activeMembershipIn,
+  canReadPeer,
   canEditIndividualForm,
   canEditTeamForms,
   canReadIndividualForm,
@@ -45,7 +46,8 @@ export async function individualFormAccess(
   if (!ownerMembershipId) throw new HttpError(400, "Choose a team member.");
   const owner = await db.membership.findUnique({ where: { id: ownerMembershipId }, select: { teamId: true } });
   if (!owner || owner.teamId !== teamId) throw notFound("Member");
-  if (!canReadIndividualForm(user, team, ownerMembershipId, form)) throw notFound("Form");
+  const readable = form === "PEER" ? canReadPeer(user, ownerMembershipId) : canReadIndividualForm(user, team, ownerMembershipId, form);
+  if (!readable) throw notFound("Form");
   const canEdit = canEditIndividualForm(user, team, ownerMembershipId);
   if (mode === "write" && !canEdit) throw forbidden();
   return { user, team, ownerMembershipId, canEdit };

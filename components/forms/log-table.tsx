@@ -62,6 +62,8 @@ export function LogTable<Row extends BaseRow>({
   allowDelete = true,
   updateMethod = "PATCH",
   editLabel = "Edit",
+  canEditRow,
+  filterLabel = "Phase",
 }: {
   title?: string;
   rows: Row[];
@@ -86,6 +88,10 @@ export function LogTable<Row extends BaseRow>({
   allowDelete?: boolean;
   updateMethod?: "PATCH" | "PUT";
   editLabel?: string;
+  /** Per-row edit rights when `canEdit` only means "may add" (e.g. members edit their own LOGTEST rows). */
+  canEditRow?: (row: Row) => boolean;
+  /** Label of the second filter (defaults to Phase). */
+  filterLabel?: string;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<{ id: string | null; values: FormValues } | null>(null);
@@ -155,7 +161,7 @@ export function LogTable<Row extends BaseRow>({
           </label>
           {phaseOf && (
             <label className="text-sm">
-              <span className="mr-1 text-slate-600">Phase</span>
+              <span className="mr-1 text-slate-600">{filterLabel}</span>
               <Select value={phase} onChange={(e) => setPhase(e.target.value)} className="w-auto">
                 <option value="">All</option>
                 {phases.map((p) => (
@@ -279,22 +285,26 @@ export function LogTable<Row extends BaseRow>({
                   ))}
                   {canEdit && (
                     <td className="px-2 py-2 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        className="mr-3 text-blue-700 hover:underline"
-                        onClick={() => {
-                          setErrors({});
-                          setFormError(undefined);
-                          setEditing({ id: row.id, values: toValues(row) });
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                      >
-                        {editLabel}
-                      </button>
-                      {allowDelete && (
-                        <button type="button" className="text-red-700 hover:underline" onClick={() => remove(row.id)}>
-                          Delete
-                        </button>
+                      {(canEditRow?.(row) ?? true) && (
+                        <>
+                          <button
+                            type="button"
+                            className="mr-3 text-blue-700 hover:underline"
+                            onClick={() => {
+                              setErrors({});
+                              setFormError(undefined);
+                              setEditing({ id: row.id, values: toValues(row) });
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            {editLabel}
+                          </button>
+                          {allowDelete && (
+                            <button type="button" className="text-red-700 hover:underline" onClick={() => remove(row.id)}>
+                              Delete
+                            </button>
+                          )}
+                        </>
                       )}
                     </td>
                   )}

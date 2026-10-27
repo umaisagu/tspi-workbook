@@ -33,10 +33,12 @@ export default async function MonitorPage() {
           <div className="grid gap-3 md:grid-cols-2">
             {g.teams.map((t) => (
               <div key={t.id} className="rounded-md border border-slate-200 p-3">
-                <div className="font-medium">{t.name}</div>
+                <Link href={`/t/${t.id}`} className="font-medium text-blue-700 hover:underline">
+                  {t.name}
+                </Link>
                 <div className="mb-2 text-xs text-slate-500">{t.projectTitle ?? "No project title yet"}</div>
                 <div className="mb-2 space-x-3 text-xs">
-                  {["task", "schedule", "sumtask", "sums", "sump", "sumq"].map((f) => (
+                  {["task", "schedule", "logtest", "week", "sumtask", "sums", "sump", "sumq", "ccr"].map((f) => (
                     <Link key={f} href={`/t/${t.id}/forms/${f}`} className="text-blue-700 hover:underline">
                       {f.toUpperCase()}
                     </Link>
@@ -49,7 +51,7 @@ export default async function MonitorPage() {
                         {m.user.name} <span className="text-slate-500">{m.roles.map((r) => roleLabel(r.role)).join(", ")}</span>
                       </span>
                       <span className="space-x-2 text-xs">
-                        {["si", "logt", "logd", "logai"].map((f) => (
+                        {["si", "logt", "logd", "logai", ...(isLecturer(user) ? ["peer"] : [])].map((f) => (
                           <Link key={f} href={`/t/${t.id}/forms/${f}?member=${m.id}`} className="text-blue-700 hover:underline">
                             {f.toUpperCase()}
                           </Link>

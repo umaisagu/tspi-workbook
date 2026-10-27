@@ -30,6 +30,7 @@ export const POST = route(async (req) => {
           week: m.week,
           dueAt: milestoneDueAt(m, week1Monday),
           requiredForms: m.requiredForms,
+          peerRequired: m.requiredForms.includes("PEER"),
           ...created(user.userId),
         })),
       },

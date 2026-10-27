@@ -12,7 +12,7 @@ Stack: Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQL + Pr
 - [x] Stage 2 — FORM-SI, LOGT, LOGD, LOGAI
 - [x] Stage 3 — TASK, SCHEDULE, earned value, SUMTASK
 - [x] Stage 4 — SUMS, SUMP, SUMQ
-- [ ] Stage 5 — LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
+- [x] Stage 5 — LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
 - [ ] Stage 6 — lecturer monitoring, contribution flags, GitHub, exports
 - [ ] Stage 7 — production hardening and deployment (DEPLOY.md)
 
@@ -41,9 +41,11 @@ Seeded accounts (password `tspi-dev-2026`): `lecturer@unimas.my`, demonstrators 
 and `demo2@siswa.unimas.my`, team leaders `84001@siswa.unimas.my` and `84011@siswa.unimas.my`,
 members `84002`–`84006` and `84012`–`84015` `@siswa.unimas.my`.
 
-The seed generates FORM-SI, LOGT, LOGD, LOGAI, TASK, SCHEDULE and SUMS size data up to the current semester week. Two members are
+The seed generates FORM-SI, LOGT, LOGD, LOGAI, TASK, SCHEDULE, SUMS sizes, LOGTEST, WEEK, PEER (at M1, seed only)
+and CCR data up to the current semester week. Two members are
 deliberately unusual: `84005` (Elvis) stops logging two weeks before today, and `84012` (Haziq) enters most of his
-LOGT in one sitting just before the M1 deadline. `84015` has not submitted FORM-SI.
+LOGT in one sitting just before the M1 deadline and submits PEER late. `84006` (Farhan) rates himself far above his
+teammates' ratings. `84015` has not submitted FORM-SI.
 
 Without SMTP settings, password-reset links are printed in the dev server's log.
 

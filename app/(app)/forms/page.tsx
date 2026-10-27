@@ -21,12 +21,13 @@ export default async function FormsPage() {
     );
   }
   const { team, membership } = current;
-  const [si, logt, logd, logai, reviews] = await Promise.all([
+  const [si, logt, logd, logai, reviews, peers] = await Promise.all([
     db.studentInfo.findUnique({ where: { membershipId: membership.membershipId }, select: { submittedAt: true } }),
     db.timeLog.count({ where: { membershipId: membership.membershipId, deletedAt: null } }),
     db.defectLog.count({ where: { membershipId: membership.membershipId, deletedAt: null } }),
     db.aiLog.count({ where: { membershipId: membership.membershipId, deletedAt: null } }),
     db.aiLog.count({ where: { reviewerMembershipId: membership.membershipId, approved: false, deletedAt: null } }),
+    db.peerEvaluation.findMany({ where: { evaluatorId: membership.membershipId, submittedAt: { not: null } }, distinct: ["milestoneId"], select: { milestoneId: true } }),
   ]);
   const status: Record<string, React.ReactNode> = {
     SI: si?.submittedAt ? <Badge tone="green">Submitted</Badge> : <Badge tone="amber">To do</Badge>,
@@ -37,6 +38,7 @@ export default async function FormsPage() {
         <Badge>{logai} entries</Badge> {reviews > 0 && <Badge tone="amber">{reviews} to review</Badge>}
       </>
     ),
+    PEER: <Badge>{peers.length} submitted</Badge>,
   };
   return (
     <div className="space-y-5">
@@ -60,7 +62,11 @@ export default async function FormsPage() {
           </Link>
         ))}
       </div>
-      <Alert kind="info">LOGTEST, WEEK, PEER and CCR arrive in the next stage.</Alert>
+      <p className="text-sm">
+        <Link href={`/t/${team.id}/milestones`} className="text-blue-700 hover:underline">
+          See which forms each milestone needs →
+        </Link>
+      </p>
     </div>
   );
 }

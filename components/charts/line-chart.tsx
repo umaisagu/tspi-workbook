@@ -12,8 +12,6 @@ export interface LineSeries {
   values: (number | null)[];
 }
 
-/** Reference palette (dataviz skill), categorical slots 1–2, light mode. */
-export const SERIES_COLORS = { blue: "#2a78d6", orange: "#eb6834" } as const;
 
 const W = 640;
 const H = 260;

@@ -19,7 +19,7 @@ If a doc conflicts with a request, ask before choosing.
 | Dev server | `npm run dev` |
 | Typecheck | `npm run typecheck` (prisma generate + next typegen + tsc) |
 | Lint | `npm run lint` |
-| Unit tests | `npm test` (Vitest; `lib/**/*.test.ts`) |
+| Unit tests | `npm test` (Vitest; `lib/**/*.test.ts`, `components/**/*.test.ts`; config `vitest.config.mts`) |
 | New migration (dev only) | `npm run db:migrate -- --name <name>` |
 | Apply migrations | `npm run db:deploy` |
 | Seed (dev only, wipes DB) | `npm run db:seed` — all seeded accounts use password `tspi-dev-2026`; log data is generated up to "today" (prisma/seed-logs.ts) |
@@ -51,12 +51,17 @@ Never run `migrate dev` or the seed against production. The seed refuses non-loc
 app/(auth)/…            login, register, forgot-password, reset-password
 app/(app)/…             signed-in pages (layout loads the user and nav)
 app/api/…               route handlers; every handler wrapped in route() from lib/server/http.ts
-components/charts       line-chart.tsx (SVG, crosshair tooltip, legend, direct labels, table view), planning-charts.tsx
+components/charts       line-chart.tsx (SVG, crosshair tooltip, legend, direct labels, table view), bar-chart.tsx,
+                        planning-charts.tsx; colours in colors.ts (plain module: server pages must not import
+                        constants from "use client" files — they arrive as client references)
+components/dashboard    completion-grid.tsx
+lib/server/team-status.ts  dashboards + milestone view loader (completion, contribution, defects by phase)
 components/ui|roster|admin|forms   forms/log-table.tsx = generic editable table (add/edit/delete, Zod inline validation, week/phase filters)
 lib/forms.ts            form slugs/titles; AVAILABLE_FORMS lists the forms with pages
 lib/server/forms/       access.ts (individualFormAccess / requireTeamForm), refs.ts (cross-record checks), loaders
 lib/tsp/                pure TSPi formulas + tests (calendar, phases, roles, milestones, time, defects, ai-log, student-info,
-                        earned-value (TASK/SCHEDULE/EV/predictions), sumtask, sizes (SUMS), quality (SUMP/SUMQ))
+                        earned-value (TASK/SCHEDULE/EV/predictions), sumtask, sizes (SUMS), quality (SUMP/SUMQ),
+                        week (WEEK), peer (PEER), test-log, completion (milestone form status), contribution)
 lib/monitoring/         pure contribution-flag logic + tests (Stage 6)
 lib/auth/               Auth.js config, permissions.ts (pure, tested), email/rate-limit helpers
 lib/schemas/            Zod schemas (shared)
@@ -85,6 +90,8 @@ docs/                   course reference material (do not edit) + workbook-formu
 - **Team Leader** = member holding TSPi role `TEAM_LEADER` in that team (not an app role): manages roster
   and TSPi roles, edits team-level forms (TASK, SCHEDULE plan, LOGTEST, WEEK, CCR, SUMS sizes, SUMQ plan).
 - **Team Member**: edits only own individual forms (FORM-SI, LOGT, LOGD, LOGAI, PEER); reads team-level forms.
+  Exception for member-owned team rows (`canEditOwnTeamRow`): own SCHEDULE row, own LOGTEST cases, own CCRs while
+  SUBMITTED. The Team Leader edits any of these and decides CCRs (`canDecideChange`).
   Individual forms are readable by the owner, the lecturer and the group's demonstrator.
 - **PEER** is visible only to its author and the lecturer. Students never see flags, lecturer notes,
   or others' PEER ratings.
@@ -144,6 +151,26 @@ docs/                   course reference material (do not edit) + workbook-formu
   shown next to SUMQ values.
 - Code: `lib/tsp/sizes.ts`, `lib/tsp/quality.ts`, loader `lib/server/forms/quality.ts`.
 
+## Stage 5 rules: LOGTEST, WEEK, PEER, CCR, dashboards
+
+- LOGTEST (team form): any member adds test cases authored by themselves (the leader may set another author);
+  IDs TC-001… per team unless typed; IDs unique per team. Summary: counts by type/status, pass rate of executed.
+- WEEK (Team Leader): one report per week from Week 5 to the current week, skipping break weeks; due Wednesday of
+  the following week 16:00 MYT (before the lab). Figures as the workbook WEEK sheet (`lib/tsp/week.ts`), live until
+  submitted, then frozen in `snapshot`; typed: tasks completed notes, risks and issues, next week's plan.
+  `submittedAt` = first submission. Status: submitted / late / missing / open.
+- PEER (individual, private to author + lecturer): per milestone with `peerRequired`; 10 rubric criteria 1–5
+  (`lib/tsp/peer.ts`), self + every current member; submit requires all; first submission time kept; drafts allowed.
+  New semesters set `peerRequired` = PEER in the milestone's required forms (default from M2). No comments on PEER.
+- CCR: any member raises; requester edits/deletes while SUBMITTED; Team Leader edits any and sets status
+  (approve/reject/implemented), which records decided by/at.
+- Milestone completion (`lib/tsp/completion.ts`): complete / late / missing / pending per required form; log forms
+  need an entry dated ≤ due (late if all such entries were typed after the due time); SUMP/SUMQ/SUMTASK follow their
+  inputs; WEEK needs every report due by the milestone. Shown on `/t/[teamId]/milestones` and the team dashboard.
+- Dashboards: `/dashboard` (member: hours this week, open tasks, forms to do, own contribution vs team average and
+  share; no flags), `/t/[teamId]` (team: EV/hours charts, defects by phase, completion for the current milestone).
+  `/team` and `/milestones` redirect a student to their team. Contribution measures in `lib/tsp/contribution.ts`.
+
 ## Decisions (defaults chosen at plan approval; change here if the lecturer decides otherwise)
 
 1. SUMS plan/actual sizes (Base, Deleted, Modified, Added, Reused), SUMQ plan injection rates and plan
@@ -160,7 +187,7 @@ docs/                   course reference material (do not edit) + workbook-formu
 6. LOGAI IDs `AI-001…` numbered per student; reviewer is a teammate; `approved` flag.
 7. PEER uses the 10 criteria of the Peer/Individual Evaluation rubric (1–5 each, 50 marks), self + each
    teammate, per milestone where `Milestone.peerRequired`. The anonymous Team Evaluation rubric is not
-   included unless requested.
+   included unless requested. (The dev seed also collects PEER at M1 so monitoring has data early.)
 8. Required forms per milestone (editable on the semester page): M1 SI, TASK, SCHEDULE; M2 + LOGT, LOGD,
    LOGAI, WEEK, PEER; M3 + LOGTEST, SUMS, SUMP, SUMQ, SUMTASK; M4 same as M3. CCR always optional.
 9. CCR fields: number, date, requester, component, description, reason, impact, priority, status
@@ -175,5 +202,5 @@ docs/                   course reference material (do not edit) + workbook-formu
 ## Stages
 
 1. ✅ Setup, schema, auth and roles  2. ✅ FORM-SI, LOGT, LOGD, LOGAI  3. ✅ TASK, SCHEDULE, EV, SUMTASK
-4. ✅ SUMS, SUMP, SUMQ  5. LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
+4. ✅ SUMS, SUMP, SUMQ  5. ✅ LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
 6. Monitoring, flags, GitHub, exports  7. Production hardening, Vercel/Neon, cron, backups, DEPLOY.md

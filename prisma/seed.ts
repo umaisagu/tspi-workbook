@@ -11,6 +11,7 @@ import { MILESTONE_DEFAULTS, milestoneDueAt } from "../lib/tsp/milestones";
 import type { TspiRole } from "../generated/prisma/enums";
 import { seedLogs, type Profile, type SeedMember } from "./seed-logs";
 import { seedPlan } from "./seed-plan";
+import { seedTeamForms } from "./seed-team-forms";
 import type { SeedComponent } from "./seed-logs";
 import { localDate, weekOf } from "../lib/tsp/calendar";
 
@@ -125,7 +126,9 @@ async function main() {
             title: m.title,
             week: m.week,
             dueAt: milestoneDueAt(m, week1Monday),
-            requiredForms: m.requiredForms,
+            // Seed only: M1 also collects PEER so monitoring has ratings to show this early in the semester.
+            requiredForms: m.code === "M1" ? [...m.requiredForms, "PEER" as const] : m.requiredForms,
+            peerRequired: m.code === "M1" || m.requiredForms.includes("PEER"),
             ...audit,
           })),
         },
@@ -240,6 +243,18 @@ async function main() {
         latestDeadline,
         seed: 2026 + seedNo++,
       });
+      const m1 = milestones.find((m) => m.code === "M1")!;
+      await seedTeamForms(db, {
+        teamId: team.id,
+        members,
+        components,
+        week1: week1Monday,
+        weekCount: semester.weekCount,
+        breakWeeks: semester.breakWeeks,
+        m1: { id: m1.id, dueAt: m1.dueAt },
+        lateWeekReports: t.name === "Rafflesia",
+        seed: 5000 + seedNo,
+      });
       const demonstrator = demonstrators[t.group - 1]!;
       const quiet = members.find((m) => m.profile === "inactive");
       if (quiet) {
@@ -263,8 +278,9 @@ async function main() {
     console.info(`  Demonstrators: demo1@siswa.unimas.my (Group 1), demo2@siswa.unimas.my (Group 2)`);
     console.info(`  Team leaders:  84001@siswa.unimas.my (Kenyalang), 84011@siswa.unimas.my (Rafflesia)`);
     console.info(`  Members:       84002-84006, 84012-84015 @siswa.unimas.my; no team: 84099@siswa.unimas.my`);
-    console.info(`  Unusual on purpose: 84005 Elvis (inactive last 2 weeks), 84012 Haziq (backfilled LOGT before ${latestDeadline.toISOString()}),`);
-    console.info(`                     84006 Farhan (low hours), 84015 Kamilah (FORM-SI not submitted)`);
+    console.info(`  Unusual on purpose: 84005 Elvis (inactive last 2 weeks, no PEER), 84012 Haziq (backfilled LOGT before ${latestDeadline.toISOString()}, late PEER),`);
+    console.info(`                     84006 Farhan (low hours, rates himself far above teammates' ratings), 84015 Kamilah (FORM-SI not submitted),`);
+    console.info(`                     Kenyalang submits WEEK reports on time; Rafflesia's week 5 report is a draft (late once its deadline passes)`);
     console.info(`  Password for every seeded account: ${DEV_PASSWORD}`);
   } finally {
     await db.$disconnect();

@@ -82,11 +82,25 @@ export function canEditTeamForms(v: Viewer, team: TeamRef): boolean {
 }
 
 /**
- * SCHEDULE plan hours are entered per member: each member edits their own row, the Team Leader edits any row.
+ * Team-level rows that belong to one member (SCHEDULE plan hours, LOGTEST cases, CCRs they requested):
+ * the member edits their own rows, the Team Leader edits any.
  */
-export function canEditScheduleRow(v: Viewer, team: TeamRef, membershipId: string): boolean {
+export function canEditOwnTeamRow(v: Viewer, team: TeamRef, ownerMembershipId: string): boolean {
   if (isTeamLeaderOf(v, team.id)) return true;
-  return activeMembershipIn(v, team.id)?.membershipId === membershipId;
+  return activeMembershipIn(v, team.id)?.membershipId === ownerMembershipId;
+}
+
+/** SCHEDULE: each member edits their own plan-hours row, the Team Leader edits any row. */
+export const canEditScheduleRow = canEditOwnTeamRow;
+
+/** Any current member may add their own LOGTEST cases and change requests. */
+export function canAddTeamRow(v: Viewer, team: TeamRef): boolean {
+  return activeMembershipIn(v, team.id) !== undefined;
+}
+
+/** The Team Leader approves, rejects or closes change requests (CCR). */
+export function canDecideChange(v: Viewer, team: TeamRef): boolean {
+  return isTeamLeaderOf(v, team.id);
 }
 
 /**

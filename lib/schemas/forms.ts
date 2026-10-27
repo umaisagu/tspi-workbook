@@ -288,6 +288,81 @@ export const qualityPlanSchema = z.object({
     .default([]),
 });
 
+// ---------- LOGTEST ----------
+
+export const testLogSchema = z.object({
+  /** Left empty, the next TC-nnn is assigned. */
+  testCode: z
+    .string()
+    .trim()
+    .max(30)
+    .regex(/^[A-Za-z0-9._-]*$/, "Use letters, numbers, dots, dashes or underscores")
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : null)),
+  module: requiredText("the module or requirement ID", 200),
+  description: requiredText("what the test checks", 1000),
+  type: z.enum(["UNIT", "WIDGET", "INTEGRATION"]),
+  expected: requiredText("the expected result", 1000),
+  actual: optionalText(1000),
+  status: z.enum(["PASS", "FAIL", "BLOCKED", "NOT_RUN"]).default("NOT_RUN"),
+  date: dateOnlySchema,
+  /** Team Leader only: record a test for another member. */
+  authorMembershipId: optionalId,
+});
+export type TestLogInput = z.infer<typeof testLogSchema>;
+
+// ---------- WEEK ----------
+
+export const weeklyReportSchema = z.object({
+  tasksCompleted: optionalText(3000),
+  risksIssues: optionalText(3000),
+  nextWeekPlan: optionalText(3000),
+  submit: z.boolean().default(false),
+});
+
+// ---------- PEER ----------
+
+const peerScore = z.coerce.number({ error: "Rate 1–5" }).int().min(1, "Rate 1–5").max(5, "Rate 1–5");
+export const peerEvaluationSchema = z.object({
+  milestoneId: z.string().min(1),
+  submit: z.boolean().default(false),
+  ratings: z
+    .array(
+      z.object({
+        evaluateeId: z.string().min(1),
+        scores: z.object({
+          quantity: peerScore,
+          timeliness: peerScore,
+          taskSupport: peerScore,
+          interaction: peerScore,
+          attendance: peerScore,
+          responsibility: peerScore,
+          involvement: peerScore,
+          leadership: peerScore,
+          roleAssignment: peerScore,
+          overall: peerScore,
+        }),
+        comment: optionalText(1000),
+      }),
+    )
+    .min(1)
+    .max(6),
+});
+
+// ---------- CCR ----------
+
+export const changeRequestSchema = z.object({
+  date: dateOnlySchema,
+  componentId: optionalId,
+  description: requiredText("the change", 2000),
+  reason: requiredText("the reason for the change", 2000),
+  impact: optionalText(2000),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
+  status: z.enum(["SUBMITTED", "APPROVED", "REJECTED", "IMPLEMENTED"]).default("SUBMITTED"),
+});
+export type ChangeRequestInput = z.infer<typeof changeRequestSchema>;
+
 // ---------- Components and comments ----------
 
 export const componentSchema = z.object({

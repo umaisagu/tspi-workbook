@@ -11,6 +11,9 @@ import {
   canReadPeer,
   canReadComments,
   canEditScheduleRow,
+  canEditOwnTeamRow,
+  canAddTeamRow,
+  canDecideChange,
   canViewMonitoring,
   canViewTeam,
   type Viewer,
@@ -146,5 +149,26 @@ describe("SCHEDULE rows", () => {
     expect(canEditScheduleRow(lecturer, teamA, "mA2")).toBe(false);
     expect(canEditScheduleRow(demoG1, teamA, "mA2")).toBe(false);
     expect(canEditScheduleRow(formerMemberA, teamA, "mA3")).toBe(false);
+  });
+});
+
+describe("member-owned team rows (LOGTEST, CCR)", () => {
+  it("any current member adds rows; staff and former members do not", () => {
+    expect(canAddTeamRow(memberA, teamA)).toBe(true);
+    expect(canAddTeamRow(leaderA, teamA)).toBe(true);
+    expect(canAddTeamRow(formerMemberA, teamA)).toBe(false);
+    expect(canAddTeamRow(lecturer, teamA)).toBe(false);
+    expect(canAddTeamRow(memberA, teamB)).toBe(false);
+  });
+  it("members edit their own rows, the leader any", () => {
+    expect(canEditOwnTeamRow(memberA, teamA, "mA2")).toBe(true);
+    expect(canEditOwnTeamRow(memberA, teamA, "mA1")).toBe(false);
+    expect(canEditOwnTeamRow(leaderA, teamA, "mA2")).toBe(true);
+    expect(canEditOwnTeamRow(demoG1, teamA, "mA2")).toBe(false);
+  });
+  it("only the team leader decides change requests", () => {
+    expect(canDecideChange(leaderA, teamA)).toBe(true);
+    expect(canDecideChange(memberA, teamA)).toBe(false);
+    expect(canDecideChange(lecturer, teamA)).toBe(false);
   });
 });

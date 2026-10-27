@@ -22,7 +22,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
       include: { component: { select: { name: true } }, assignee: { include: { user: { select: { name: true } } } } },
     }),
     db.scheduleWeek.findMany({ where: { teamId } }),
-    db.membership.findMany({ where: { teamId }, include: { user: { select: { name: true } } }, orderBy: { joinedAt: "asc" } }),
+    db.membership.findMany({ where: { teamId }, include: { user: { select: { name: true } }, roles: true }, orderBy: { joinedAt: "asc" } }),
     db.timeLog.findMany({
       where: { deletedAt: null, membership: { teamId } },
       select: { date: true, deltaMin: true, taskId: true, membershipId: true },
@@ -31,12 +31,14 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
 
   // LOGT roll-ups
   const actualByWeek = new Map<number, number>();
+  const memberWeek = new Map<string, number>();
   const actualByTask = new Map<string, number>();
   const unlinkedByMember = new Map<string, number>();
   for (const l of logs) {
     const h = l.deltaMin / 60;
     const w = weekOf(l.date, week1);
     actualByWeek.set(w, (actualByWeek.get(w) ?? 0) + h);
+    memberWeek.set(`${l.membershipId}|${w}`, (memberWeek.get(`${l.membershipId}|${w}`) ?? 0) + h);
     if (l.taskId) actualByTask.set(l.taskId, (actualByTask.get(l.taskId) ?? 0) + h);
     else unlinkedByMember.set(l.membershipId, (unlinkedByMember.get(l.membershipId) ?? 0) + h);
   }
@@ -129,7 +131,21 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
 
   return {
     teamId,
-    semester: { id: semester.id, name: semester.name, weekCount: semester.weekCount, breakWeeks: semester.breakWeeks, hiddenPhases: semester.hiddenPhases },
+    members: members.map((m) => ({ id: m.id, name: m.user.name, roles: m.roles.map((r) => r.role), active: m.leftAt === null })),
+    /** LOGT hours per member per week */
+    memberWeekHours: [...memberWeek.entries()].map(([k, hours]) => {
+      const [memberId, week] = k.split("|");
+      return { memberId: memberId!, week: Number(week), hours };
+    }),
+    scheduleByMember,
+    semester: {
+      id: semester.id,
+      name: semester.name,
+      weekCount: semester.weekCount,
+      breakWeeks: semester.breakWeeks,
+      hiddenPhases: semester.hiddenPhases,
+      week1Monday: week1,
+    },
     week1: formatDateOnly(week1),
     currentWeek,
     weeks,
