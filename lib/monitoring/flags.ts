@@ -72,10 +72,10 @@ export function lowShareFlags(input: FlagInput): Flag[] {
   const fair = 1 / members.length;
   const limit = t.lowShare.fraction * fair;
   const period = milestonePeriod(input.milestones, input.currentWeek);
-  const windows = [
-    { label: `last ${t.lowShare.windowWeeks} weeks`, from: input.currentWeek - t.lowShare.windowWeeks + 1, to: input.currentWeek },
-    ...(period ? [{ label: `${period.code} so far`, from: period.from, to: period.to }] : []),
-  ];
+  const recent = { label: `last ${t.lowShare.windowWeeks} weeks`, from: input.currentWeek - t.lowShare.windowWeeks + 1, to: input.currentWeek };
+  const span = (w: { from: number; to: number }) => workingWeeks(w.from, w.to, input.breakWeeks).length;
+  // The milestone window adds information only once it is longer than the recent window.
+  const windows = [recent, ...(period && span(period) > span(recent) ? [{ label: `${period.code} so far`, from: period.from, to: period.to }] : [])];
   const flags: Flag[] = [];
   for (const m of members) {
     const lines: string[] = [];
@@ -84,6 +84,8 @@ export function lowShareFlags(input: FlagInput): Flag[] {
       const hoursOf = (id: string) => input.hours.filter((x) => x.memberId === id && inWin(x.week)).reduce((s, x) => s + x.hours, 0);
       const evOf = (id: string) =>
         input.tasks.filter((x) => x.assigneeId === id && x.completedWeek !== null && inWin(x.completedWeek)).reduce((s, x) => s + x.planValue, 0);
+      const teamHours = members.reduce((s, x) => s + hoursOf(x.id), 0);
+      if (teamHours < t.lowShare.minTeamHours) continue; // too little data to judge shares
       for (const [label, of] of [
         ["hours", hoursOf],
         ["earned value", evOf],

@@ -13,6 +13,7 @@ const FIELDS: { title: string; fields: Num[] }[] = [
     fields: [
       { group: "lowShare", key: "fraction", label: "Share below (% of fair share)", hint: "Fair share = 100% ÷ team size", percent: true },
       { group: "lowShare", key: "windowWeeks", label: "Recent window (weeks)", hint: "Also checked over the current milestone" },
+      { group: "lowShare", key: "minTeamHours", label: "Judge only after team hours ≥", hint: "Shares of a window with fewer team hours are not judged" },
     ],
   },
   { title: "Inactive", fields: [{ group: "inactive", key: "weeks", label: "Weeks without LOGT", hint: "Consecutive working weeks" }] },

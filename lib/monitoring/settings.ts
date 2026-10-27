@@ -10,6 +10,8 @@ export const thresholdsSchema = z.object({
       /** Flag when a member's share is below this fraction of the fair share (100% / team size). */
       fraction: z.coerce.number().min(0).max(1).default(0.5),
       windowWeeks: z.coerce.number().int().min(1).max(15).default(3),
+      /** A window is judged only when the team logged at least this many hours in it (too little data otherwise). */
+      minTeamHours: z.coerce.number().min(0).max(500).default(10),
     })
     .prefault({}),
   inactive: z

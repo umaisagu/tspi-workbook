@@ -187,7 +187,8 @@ docs/                   course reference material (do not edit) + workbook-formu
 - Team status: Behind if SPI (cum EV / cum PV) < `behindSpi` or no activity for > 2 × `inactiveDays`; At risk if
   SPI < `atRiskSpi`, no activity for > `inactiveDays`, a required form missing for a past milestone, or ≥ 2 open flags.
 - Flags (`lib/monitoring/flags.ts`, thresholds in `MonitoringSettings.thresholds` per semester, defaults in settings.ts):
-  LOW_SHARE (hours or EV < fraction × fair share over the last `windowWeeks` or the milestone period; key = milestone),
+  LOW_SHARE (hours or EV < fraction × fair share over the last `windowWeeks`, and over the milestone period once
+  it is longer than that window; windows with < `minTeamHours` team hours are not judged; key = milestone),
   INACTIVE (no LOGT for `weeks` consecutive working weeks, current week included; key `W{a}-W{b}`),
   HOURS_NO_OUTPUT (≥ `minHours` in the window but no completed task, test case or commit), BACKFILL (≥ `minEntries`
   log entries typed ≥ `lagDays` after their date within `sessionGapMinutes` of each other, ending ≤ `daysBeforeDeadline`

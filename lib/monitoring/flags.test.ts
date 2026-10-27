@@ -68,6 +68,22 @@ describe("LOW_SHARE", () => {
     expect(f.map((x) => x.memberId)).toEqual(["d"]);
     expect(f[0]!.evidence.some((l) => l.startsWith("Earned value"))).toBe(true);
   });
+  it("does not judge a window with too little team time", () => {
+    // Week 6 only, 2 h in total: the share is 0% but there is nothing to judge yet.
+    const f = lowShareFlags({ ...base, currentWeek: 6, hours: [{ memberId: "a", week: 6, hours: 2 }] });
+    expect(f).toEqual([]);
+  });
+  it("checks the milestone window only once it is longer than the recent window", () => {
+    // Week 7: M2 so far = weeks 6–7, shorter than the 3-week window, so only the recent window is reported.
+    const f = lowShareFlags({ ...base, hours: [...weekly(["a", "b", "c"], [5, 6, 7]), ...weekly(["d"], [5, 6, 7], 1)] });
+    expect(f[0]!.evidence.every((l) => l.includes("last 3 weeks"))).toBe(true);
+    // Week 11 with a long M3 period (weeks 10–13 in a 13-week M3): window weeks 9–11 vs M3 weeks 10–11 → recent only;
+    // with a 1-week recent window the milestone window is longer and is checked too.
+    const ms = [...milestones, { code: "M3", week: 13, dueAt: d("2026-12-16T15:59:00Z") }];
+    const hours = [...weekly(["a", "b", "c"], [10, 11]), ...weekly(["d"], [10, 11], 0.5)];
+    const g = lowShareFlags({ ...base, milestones: ms, currentWeek: 11, hours, thresholds: { ...DEFAULT_THRESHOLDS, lowShare: { ...DEFAULT_THRESHOLDS.lowShare, windowWeeks: 1 } } });
+    expect(g[0]!.evidence.some((l) => l.includes("M3 so far"))).toBe(true);
+  });
   it("does not flag an even team or a team with no data", () => {
     expect(lowShareFlags({ ...base, hours: weekly(["a", "b", "c", "d"], [5, 6, 7]) })).toEqual([]);
     expect(lowShareFlags(base)).toEqual([]);
