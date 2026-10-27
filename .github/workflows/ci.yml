@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tspi
+          POSTGRES_PASSWORD: tspi
+          POSTGRES_DB: tspi_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tspi" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://tspi:tspi@localhost:5432/tspi_ci
+      DIRECT_URL: postgresql://tspi:tspi@localhost:5432/tspi_ci
+      AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      APP_URL: http://localhost:3000
+      ALLOWED_EMAIL_DOMAINS: siswa.unimas.my,unimas.my
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Build (generate, migrate, next build)
+        run: npm run build
