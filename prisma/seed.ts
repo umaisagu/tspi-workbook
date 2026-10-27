@@ -13,6 +13,7 @@ import { seedLogs, type Profile, type SeedMember } from "./seed-logs";
 import { seedPlan } from "./seed-plan";
 import { seedTeamForms } from "./seed-team-forms";
 import { seedGithub } from "./seed-github";
+import { seedAllowed } from "../lib/deploy/target";
 import type { SeedComponent } from "./seed-logs";
 import { localDate, weekOf } from "../lib/tsp/calendar";
 
@@ -93,8 +94,11 @@ async function main() {
   assertSafeToSeed();
   const db = scriptClient();
   try {
+    const marker = (await db.appMeta.findUnique({ where: { key: "environment" } }))?.value ?? null;
+    if (!seedAllowed(marker)) throw new Error("Refusing to seed: this database is marked as production.");
+    // AppMeta (the environment marker) is kept.
     const tables = await db.$queryRaw<{ tablename: string }[]>`
-      SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
+      SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT IN ('_prisma_migrations', 'AppMeta')`;
     if (tables.length > 0) {
       await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(", ")} RESTART IDENTITY CASCADE`);
     }

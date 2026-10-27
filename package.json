@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && tsx scripts/deploy-target.ts check && prisma migrate deploy && tsx scripts/deploy-target.ts mark && next build",
     "build:app": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -16,7 +16,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset",
     "postinstall": "prisma generate",
-    "create-lecturer": "tsx scripts/create-lecturer.ts"
+    "create-lecturer": "tsx scripts/create-lecturer.ts",
+    "backup": "tsx scripts/backup.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
@@ -56,6 +57,9 @@
   "overrides": {
     "next-auth": {
       "nodemailer": "$nodemailer"
+    },
+    "exceljs": {
+      "uuid": "^11.1.1"
     }
   }
 }

@@ -1,5 +1,5 @@
 import "server-only";
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 import { db } from "@/lib/db";
 import { githubEnabled } from "@/lib/env";
 import { GitHubError, getAll } from "@/lib/github/client";

@@ -1,6 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
-import { ZodError, type z } from "zod";
+import { ZodError, type z } from "@/lib/schemas/zod";
 import { fieldErrorsFrom } from "@/lib/schemas/errors";
 
 export class HttpError extends Error {

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 
 /**
  * Thresholds for contribution flags and team status, configurable per semester by the lecturer

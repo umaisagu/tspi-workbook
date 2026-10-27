@@ -2,7 +2,7 @@
  * Pure parsing of GitHub REST API responses into activity rows (commits, pull requests, reviews).
  * Responses are external data: they are validated with Zod and anything unexpected is skipped.
  */
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 
 export interface RepoRef {
   owner: string;

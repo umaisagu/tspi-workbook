@@ -23,11 +23,12 @@ If a doc conflicts with a request, ask before choosing.
 | New migration (dev only) | `npm run db:migrate -- --name <name>` |
 | Apply migrations | `npm run db:deploy` |
 | Seed (dev only, wipes DB) | `npm run db:seed` — all seeded accounts use password `tspi-dev-2026`; log data is generated up to "today" (prisma/seed-logs.ts); GitHub activity is cached seed data for fictional repos (seed-github.ts) |
-| Production build | `npm run build` = `prisma generate && prisma migrate deploy && next build` |
+| Production build | `npm run build` = `prisma generate`, deploy-target check, `prisma migrate deploy`, mark, `next build` |
 | First lecturer (production, once) | `npm run create-lecturer` |
+| Backup (off-site copy) | `npm run backup` (pg_dump of `BACKUP_DATABASE_URL`/`DIRECT_URL` to `./backups`, git-ignored) |
 
 Never run `migrate dev` or the seed against production. The seed refuses non-local hosts unless
-`SEED_ALLOW_REMOTE=yes` (preview database only).
+`SEED_ALLOW_REMOTE=yes` (preview database only), and any database marked production (`AppMeta`).
 
 ## Stack and versions
 
@@ -41,7 +42,8 @@ Never run `migrate dev` or the seed against production. The seed refuses non-loc
 - Auth.js v5 (`next-auth@beta`), Credentials provider, JWT sessions. Every request re-loads the user
   (`lib/server/viewer.ts`): deactivated users and sessions older than the user's `sessionVersion`
   (bumped on password reset / role change) are rejected.
-- Zod 4 schemas in `lib/schemas` are shared by client forms and API routes.
+- Zod 4 schemas in `lib/schemas` are shared by client forms and API routes. Import `z` from `@/lib/schemas/zod`
+  (jitless mode; a bare `"zod"` import is an ESLint error) — Zod's eval probe would violate the CSP.
 - Vitest 4. npm 10 hits a peer-resolution bug when *adding* vitest; use `--legacy-peer-deps` for that
   one install. `npm ci` works normally.
 
@@ -73,7 +75,10 @@ lib/auth/               Auth.js config, permissions.ts (pure, tested), email/rat
 lib/schemas/            Zod schemas (shared)
 lib/server/             server-only data access, guards, audit helpers
 prisma/                 schema, migrations, seed.ts
-scripts/                create-lecturer.ts, extract-workbook.py, db-client.ts
+lib/security/csp.ts     Content-Security-Policy builder (nonce per request, set in proxy.ts) + tests
+lib/deploy/             target.ts (environment marker rules), backup.ts (backup helpers), with tests
+lib/server/maintenance.ts  cleanup for the daily cron (old rate-limit rows, reset tokens)
+scripts/                create-lecturer.ts, deploy-target.ts (build guard), backup.ts, extract-workbook.py, db-client.ts
 docs/                   course reference material (do not edit) + workbook-formulas.md
 ```
 
@@ -201,7 +206,7 @@ docs/                   course reference material (do not edit) + workbook-formu
 - GitHub: `Team.repoUrl` + FORM-SI GitHub usernames (case-insensitive). Commits since Week 1, PRs, reviews via REST with
   `GITHUB_TOKEN`; cached in `GitHubActivity` (unique `externalId`, so re-syncs add only new rows); errors stored in
   `GitHubSync.lastError` and the cache is kept. Refresh: lecturer button (one team / next batch) or the daily cron
-  `GET /api/cron/github` (`Authorization: Bearer CRON_SECRET`). Without `GITHUB_TOKEN` the GitHub columns are hidden.
+  `GET /api/cron/daily` (`Authorization: Bearer CRON_SECRET`). Without `GITHUB_TOKEN` the GitHub columns are hidden.
   In this sandbox Node's fetch only reaches GitHub with credentials when started with `NODE_USE_ENV_PROXY=1
   NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` (not needed on Vercel).
 - Exports (Excel and PDF, same document model): `/api/export/form?team=&form=&format=xlsx|pdf` and
@@ -209,6 +214,23 @@ docs/                   course reference material (do not edit) + workbook-formu
   `/api/export/contribution?member=&milestone=&format=` (lecturer only: shares within the milestone period, GitHub,
   hours by week, PEER received vs self, forms, flags + review history, notes). PDFs use Helvetica, so text goes
   through `pdfSafe`; `pdfkit`'s font files are traced via `outputFileTracingIncludes` in next.config.ts.
+
+## Stage 7 rules: production
+
+- Deployment guide: `DEPLOY.md` (Vercel Hobby + Neon, region Singapore: `vercel.json` `regions: ["sin1"]`).
+- Environments: production and preview each have their own Neon project (never a branch of production).
+  `AppMeta.environment` marks each database; `npm run build` runs `scripts/deploy-target.ts check` before
+  `prisma migrate deploy` (mismatch → build fails, nothing changed) and `mark` after it. Rules in `lib/deploy/target.ts`.
+- CSP: `proxy.ts` sets a per-request nonce policy on every page (`lib/security/csp.ts`); the root layout calls
+  `connection()` so every page renders dynamically and Next applies the nonce. Scripts: nonce + 'strict-dynamic'
+  (no eval in production); styles: 'self' + 'unsafe-inline' (React style attributes). Other headers in next.config.ts.
+- Errors: `app/global-error.tsx`, `app/(app)/error.tsx`, `app/(auth)/error.tsx` (generic text + digest),
+  `app/not-found.tsx`, `app/(app)/not-found.tsx`.
+- Cron (Hobby: once a day): `vercel.json` → `GET /api/cron/daily` 18:00 UTC: `cleanup()` then GitHub `syncBatch`
+  (up to 45 s budget). Only production deployments run cron.
+- Backups: Neon point-in-time restore + `npm run backup` (pg_dump custom format, verified with pg_restore --list).
+  Dumps contain personal data: never commit (`/backups/`, `*.dump` git-ignored).
+- `npm audit --omit=dev` is clean; exceljs's `uuid` is overridden to ^11.1.1 in `package.json` `overrides`.
 
 ## Decisions (defaults chosen at plan approval; change here if the lecturer decides otherwise)
 
@@ -242,4 +264,4 @@ docs/                   course reference material (do not edit) + workbook-formu
 
 1. ✅ Setup, schema, auth and roles  2. ✅ FORM-SI, LOGT, LOGD, LOGAI  3. ✅ TASK, SCHEDULE, EV, SUMTASK
 4. ✅ SUMS, SUMP, SUMQ  5. ✅ LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
-6. ✅ Monitoring, flags, GitHub, exports  7. Production hardening, Vercel/Neon, cron, backups, DEPLOY.md
+6. ✅ Monitoring, flags, GitHub, exports  7. ✅ Production hardening, Vercel/Neon, cron, backups, DEPLOY.md

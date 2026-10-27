@@ -45,3 +45,7 @@ next-env.d.ts
 
 # keep the example env file
 !.env.example
+
+# database backups (npm run backup) contain personal data: never commit
+/backups/
+*.dump

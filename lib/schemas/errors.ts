@@ -1,4 +1,4 @@
-import type { ZodError } from "zod";
+import type { ZodError } from "@/lib/schemas/zod";
 
 /** Zod issues → { "field.path": ["message", ...] } for showing next to inputs. */
 export function fieldErrorsFrom(error: ZodError): Record<string, string[]> {

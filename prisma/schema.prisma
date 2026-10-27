@@ -765,3 +765,13 @@ model GitHubSync {
   lastError    String?
   updatedAt    DateTime  @updatedAt
 }
+
+// ---------- Deployment ----------
+
+/// Facts about this database, e.g. key "environment" = production | preview | development.
+/// Set by scripts/deploy-target.ts on the first build against the database; checked on every build after that.
+model AppMeta {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

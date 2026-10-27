@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 import { githubEnabled } from "@/lib/env";
 import { requireLecturer } from "@/lib/server/guards";
 import { syncBatch, syncTeam } from "@/lib/server/github-sync";

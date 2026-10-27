@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
-import type { ZodType } from "zod";
+import type { ZodType } from "@/lib/schemas/zod";
 import { Alert, Button, Field, Input, Select, sendJson, type FieldErrors } from "@/components/ui/form";
 import { fieldErrorsFrom } from "@/lib/schemas/errors";
 

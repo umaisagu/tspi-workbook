@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 import { emailSchema } from "./auth";
 
 const dateOnly = z

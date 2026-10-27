@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 import { phaseSchema, tspiRoleSchema } from "./admin";
 import { parseClock, timeEntryErrors } from "@/lib/tsp/time";
 import { defectPhaseErrors, isDefectType } from "@/lib/tsp/defects";

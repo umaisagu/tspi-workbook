@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 
 /**
  * Environment variables, validated once. Required variables missing → a clear error at startup

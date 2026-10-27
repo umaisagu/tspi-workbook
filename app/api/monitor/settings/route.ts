@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 import { db } from "@/lib/db";
 import { thresholdsSchema } from "@/lib/monitoring/settings";
 import { created, updated } from "@/lib/server/audit";
