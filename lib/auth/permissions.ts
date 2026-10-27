@@ -109,6 +109,15 @@ export function canComment(v: Viewer, team: TeamRef): boolean {
   return isLecturer(v) || demonstratesGroup(v, team.labGroupId);
 }
 
+/** Comments on a form are readable by whoever may read the form itself. */
+export function canReadComments(v: Viewer, team: TeamRef, form: FormType, membershipId: string | null): boolean {
+  if (INDIVIDUAL_FORMS.includes(form)) {
+    if (!membershipId) return false;
+    return form === "PEER" ? canReadPeer(v, membershipId) : canReadIndividualForm(v, team, membershipId, form);
+  }
+  return canReadTeamForms(v, team);
+}
+
 // ----- Monitoring -----
 
 /** Monitoring views, including contribution flags. Students never see them. */

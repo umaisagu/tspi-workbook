@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { isLecturer } from "@/lib/auth/permissions";
 import { requireStaffPage } from "@/lib/server/page-guards";
@@ -8,7 +9,7 @@ import { roleLabel } from "@/lib/tsp/roles";
 
 export const metadata: Metadata = { title: "Monitor" };
 
-/** Stage 1: list of the teams the viewer may monitor. The full dashboard arrives in Stage 6. */
+/** Until Stage 6: list of the teams the viewer may monitor. The full dashboard arrives in Stage 6. */
 export default async function MonitorPage() {
   const user = await requireStaffPage();
   const groups = await db.labGroup.findMany({
@@ -36,8 +37,17 @@ export default async function MonitorPage() {
                 <div className="mb-2 text-xs text-slate-500">{t.projectTitle ?? "No project title yet"}</div>
                 <ul className="space-y-0.5 text-sm">
                   {t.memberships.map((m) => (
-                    <li key={m.id}>
-                      {m.user.name} <span className="text-slate-500">{m.roles.map((r) => roleLabel(r.role)).join(", ")}</span>
+                    <li key={m.id} className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <span>
+                        {m.user.name} <span className="text-slate-500">{m.roles.map((r) => roleLabel(r.role)).join(", ")}</span>
+                      </span>
+                      <span className="space-x-2 text-xs">
+                        {["si", "logt", "logd", "logai"].map((f) => (
+                          <Link key={f} href={`/t/${t.id}/forms/${f}?member=${m.id}`} className="text-blue-700 hover:underline">
+                            {f.toUpperCase()}
+                          </Link>
+                        ))}
+                      </span>
                     </li>
                   ))}
                 </ul>

@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 import { scriptClient } from "../scripts/db-client";
 import { MILESTONE_DEFAULTS, milestoneDueAt } from "../lib/tsp/milestones";
 import type { TspiRole } from "../generated/prisma/enums";
+import { seedLogs, type Profile, type SeedMember } from "./seed-logs";
 
 const DEV_PASSWORD = "tspi-dev-2026";
 
@@ -34,22 +35,34 @@ interface SeedStudent {
   name: string;
   matric: string;
   roles: TspiRole[];
+  profile: Profile;
+  focus: SeedMember["focus"];
+  si?: SeedMember["siSubmitted"];
 }
 
-const TEAMS: { group: number; name: string; projectTitle: string; clientName: string; repoUrl: string; members: SeedStudent[] }[] = [
+const TEAMS: {
+  group: number;
+  name: string;
+  projectTitle: string;
+  clientName: string;
+  repoUrl: string;
+  components: string[];
+  members: SeedStudent[];
+}[] = [
   {
     group: 1,
     name: "Kenyalang",
     projectTitle: "Smart Campus Lost & Found",
     clientName: "UNIMAS Student Affairs Division",
     repoUrl: "https://github.com/tma3084-2026/kenyalang-lost-found",
+    components: ["Authentication", "Item Listing", "AI Image Matching", "Notifications"],
     members: [
-      { name: "Aina Sofea binti Rahman", matric: "84001", roles: ["TEAM_LEADER"] },
-      { name: "Benjamin Lee Wei Jie", matric: "84002", roles: ["DEVELOPMENT_MANAGER"] },
-      { name: "Chong Mei Ling", matric: "84003", roles: ["PLANNING_MANAGER"] },
-      { name: "Dayang Nurul Izzah", matric: "84004", roles: ["QUALITY_PROCESS_MANAGER"] },
-      { name: "Elvis anak Jimbun", matric: "84005", roles: ["SUPPORT_MANAGER"] },
-      { name: "Farhan Hakimi bin Yusof", matric: "84006", roles: ["DEVELOPMENT_MANAGER"] },
+      { name: "Aina Sofea binti Rahman", matric: "84001", roles: ["TEAM_LEADER"], profile: "normal", focus: "lead" },
+      { name: "Benjamin Lee Wei Jie", matric: "84002", roles: ["DEVELOPMENT_MANAGER"], profile: "high", focus: "dev" },
+      { name: "Chong Mei Ling", matric: "84003", roles: ["PLANNING_MANAGER"], profile: "normal", focus: "plan" },
+      { name: "Dayang Nurul Izzah", matric: "84004", roles: ["QUALITY_PROCESS_MANAGER"], profile: "normal", focus: "qa" },
+      { name: "Elvis anak Jimbun", matric: "84005", roles: ["SUPPORT_MANAGER"], profile: "inactive", focus: "support", si: "late" },
+      { name: "Farhan Hakimi bin Yusof", matric: "84006", roles: ["DEVELOPMENT_MANAGER"], profile: "low", focus: "dev" },
     ],
   },
   {
@@ -58,12 +71,13 @@ const TEAMS: { group: number; name: string; projectTitle: string; clientName: st
     projectTitle: "Kuching Homestay Booking with AI Recommendations",
     clientName: "Kampung Budaya Homestay Association",
     repoUrl: "https://github.com/tma3084-2026/rafflesia-homestay",
+    components: ["Authentication", "Booking", "AI Recommendations", "Payments"],
     members: [
-      { name: "Grace Ting Siew Hua", matric: "84011", roles: ["TEAM_LEADER"] },
-      { name: "Haziq Danial bin Osman", matric: "84012", roles: ["DEVELOPMENT_MANAGER"] },
-      { name: "Irene anak Kalong", matric: "84013", roles: ["PLANNING_MANAGER"] },
-      { name: "Jason Wong Kah Seng", matric: "84014", roles: ["QUALITY_PROCESS_MANAGER"] },
-      { name: "Kamilah binti Sapawi", matric: "84015", roles: ["SUPPORT_MANAGER"] },
+      { name: "Grace Ting Siew Hua", matric: "84011", roles: ["TEAM_LEADER"], profile: "normal", focus: "lead" },
+      { name: "Haziq Danial bin Osman", matric: "84012", roles: ["DEVELOPMENT_MANAGER"], profile: "backfill", focus: "dev" },
+      { name: "Irene anak Kalong", matric: "84013", roles: ["PLANNING_MANAGER"], profile: "normal", focus: "plan" },
+      { name: "Jason Wong Kah Seng", matric: "84014", roles: ["QUALITY_PROCESS_MANAGER"], profile: "high", focus: "qa" },
+      { name: "Kamilah binti Sapawi", matric: "84015", roles: ["SUPPORT_MANAGER"], profile: "normal", focus: "support", si: "missing" },
     ],
   },
 ];
@@ -127,6 +141,12 @@ async function main() {
       ),
     );
 
+    const milestones = await db.milestone.findMany({ where: { semesterId: semester.id }, orderBy: { dueAt: "asc" } });
+    const now = new Date();
+    const past = milestones.filter((m) => m.dueAt <= now);
+    const latestDeadline = past.at(-1)?.dueAt ?? new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    let seedNo = 1;
     for (const t of TEAMS) {
       const team = await db.team.create({
         data: {
@@ -138,17 +158,69 @@ async function main() {
           ...audit,
         },
       });
+      const members: SeedMember[] = [];
       for (const s of t.members) {
         const user = await db.user.create({
           data: { name: s.name, email: `${s.matric}@siswa.unimas.my`, passwordHash, appRole: "STUDENT" },
         });
-        await db.membership.create({
+        const membership = await db.membership.create({
           data: {
             teamId: team.id,
             userId: user.id,
             joinedAt: new Date(Date.UTC(2026, 9, 7, 9)),
             ...audit,
             roles: { create: s.roles.map((role) => ({ role, createdById: lecturer.id })) },
+          },
+        });
+        members.push({
+          membershipId: membership.id,
+          userId: user.id,
+          name: s.name,
+          matric: s.matric,
+          profile: s.profile,
+          focus: s.focus,
+          siSubmitted: s.si ?? "onTime",
+        });
+      }
+      const leader = members[0]!;
+      const components = [
+        await db.component.create({
+          data: { teamId: team.id, name: "SRS & Proposal", sizeMeasure: "REQ_PAGES", createdById: leader.userId, updatedById: leader.userId },
+        }),
+      ];
+      for (const [i, name] of t.components.entries()) {
+        components.push(
+          await db.component.create({
+            data: {
+              teamId: team.id,
+              name,
+              kind: "ASSEMBLY",
+              ownerMembershipId: members[(i + 1) % members.length]!.membershipId,
+              createdById: leader.userId,
+              updatedById: leader.userId,
+            },
+          }),
+        );
+      }
+      const { currentWeek } = await seedLogs(db, {
+        teamId: team.id,
+        members,
+        components: components.map((c) => ({ id: c.id, name: c.name, code: c.name !== "SRS & Proposal" })),
+        week1: week1Monday,
+        breakWeeks: semester.breakWeeks,
+        latestDeadline,
+        seed: 2026 + seedNo++,
+      });
+      const demonstrator = demonstrators[t.group - 1]!;
+      const quiet = members.find((m) => m.profile === "inactive");
+      if (quiet) {
+        await db.formComment.create({
+          data: {
+            teamId: team.id,
+            formType: "LOGT",
+            membershipId: quiet.membershipId,
+            authorId: demonstrator.id,
+            body: `No time recorded since week ${currentWeek - 2}. Please update your LOGT before the next lab.`,
           },
         });
       }
@@ -162,6 +234,8 @@ async function main() {
     console.info(`  Demonstrators: demo1@siswa.unimas.my (Group 1), demo2@siswa.unimas.my (Group 2)`);
     console.info(`  Team leaders:  84001@siswa.unimas.my (Kenyalang), 84011@siswa.unimas.my (Rafflesia)`);
     console.info(`  Members:       84002-84006, 84012-84015 @siswa.unimas.my; no team: 84099@siswa.unimas.my`);
+    console.info(`  Unusual on purpose: 84005 Elvis (inactive last 2 weeks), 84012 Haziq (backfilled LOGT before ${latestDeadline.toISOString()}),`);
+    console.info(`                     84006 Farhan (low hours), 84015 Kamilah (FORM-SI not submitted)`);
     console.info(`  Password for every seeded account: ${DEV_PASSWORD}`);
   } finally {
     await db.$disconnect();

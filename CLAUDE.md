@@ -22,7 +22,7 @@ If a doc conflicts with a request, ask before choosing.
 | Unit tests | `npm test` (Vitest; `lib/**/*.test.ts`) |
 | New migration (dev only) | `npm run db:migrate -- --name <name>` |
 | Apply migrations | `npm run db:deploy` |
-| Seed (dev only, wipes DB) | `npm run db:seed` — all seeded accounts use password `tspi-dev-2026` |
+| Seed (dev only, wipes DB) | `npm run db:seed` — all seeded accounts use password `tspi-dev-2026`; log data is generated up to "today" (prisma/seed-logs.ts) |
 | Production build | `npm run build` = `prisma generate && prisma migrate deploy && next build` |
 | First lecturer (production, once) | `npm run create-lecturer` |
 
@@ -51,8 +51,10 @@ Never run `migrate dev` or the seed against production. The seed refuses non-loc
 app/(auth)/…            login, register, forgot-password, reset-password
 app/(app)/…             signed-in pages (layout loads the user and nav)
 app/api/…               route handlers; every handler wrapped in route() from lib/server/http.ts
-components/ui|roster|admin
-lib/tsp/                pure TSPi formulas + tests (calendar, phases, roles, milestones, …)
+components/ui|roster|admin|forms   forms/log-table.tsx = generic editable table (add/edit/delete, Zod inline validation, week/phase filters)
+lib/forms.ts            form slugs/titles; AVAILABLE_FORMS lists the forms with pages
+lib/server/forms/       access.ts (individualFormAccess / requireTeamForm), refs.ts (cross-record checks), loaders
+lib/tsp/                pure TSPi formulas + tests (calendar, phases, roles, milestones, time, defects, ai-log, student-info)
 lib/monitoring/         pure contribution-flag logic + tests (Stage 6)
 lib/auth/               Auth.js config, permissions.ts (pure, tested), email/rate-limit helpers
 lib/schemas/            Zod schemas (shared)
@@ -91,6 +93,23 @@ docs/                   course reference material (do not edit) + workbook-formu
   the lecturer assigns staff roles. First lecturer: `npm run create-lecturer`.
 - Login and password reset are rate limited in Postgres (`RateLimit` table).
 
+## Form rules (Stage 2)
+
+- Form pages: `/t/[teamId]/forms/[slug]?member=<membershipId>` (staff pick the member; students see their own).
+  `/forms` lists a student's forms. API: `/api/teams/[id]/{si,logt,logd,logai}` (+ `/[rowId]`), `?member=` on GET.
+- LOGT: delta = stop − start − interruption (minutes), computed on the server; no future dates; phase must be
+  one where time is logged (not AT/PL); sessions of one member may not overlap on the same day (back-to-back is fine);
+  sessions past midnight are split into two entries.
+- LOGD: number = next in the member's sequence (never reused); types 10–100 from the workbook; removal phase
+  cannot be earlier than injection phase; Fix Ref. points to another of the member's defects.
+- LOGAI: code AI-001… per student; reviewer is a current teammate (not self); only the reviewer can approve
+  (`POST …/logai/[rowId]/review`); editing reviewed fields or changing reviewer withdraws approval.
+- FORM-SI: sections A–K as in the information sheet; saving requires the declaration; `submittedAt` is the first
+  submission (kept for lateness), later edits update `updatedAt`. Residence stored as option or `Other: …`.
+- Components (team's assemblies/parts) are edited by the Team Leader on the Team page; deleted names can be re-added.
+- Comments: lecturer and the group's demonstrator post; anyone who can read the form reads them. No comments on PEER.
+- Deletes are soft (`deletedAt`); every list query filters `deletedAt: null`.
+
 ## Decisions (defaults chosen at plan approval; change here if the lecturer decides otherwise)
 
 1. SUMS plan/actual sizes (Base, Deleted, Modified, Added, Reused), SUMQ plan injection rates and plan
@@ -120,6 +139,6 @@ docs/                   course reference material (do not edit) + workbook-formu
 
 ## Stages
 
-1. ✅ Setup, schema, auth and roles  2. FORM-SI, LOGT, LOGD, LOGAI  3. TASK, SCHEDULE, EV, SUMTASK
+1. ✅ Setup, schema, auth and roles  2. ✅ FORM-SI, LOGT, LOGD, LOGAI  3. TASK, SCHEDULE, EV, SUMTASK
 4. SUMS, SUMP, SUMQ  5. LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
 6. Monitoring, flags, GitHub, exports  7. Production hardening, Vercel/Neon, cron, backups, DEPLOY.md

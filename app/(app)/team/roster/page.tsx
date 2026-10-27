@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { canManageRoster } from "@/lib/auth/permissions";
+import { canEditTeamForms, canManageRoster } from "@/lib/auth/permissions";
+import { listComponents } from "@/lib/server/forms/logs";
+import { ComponentsManager } from "@/components/forms/components-manager";
 import { requirePageUser } from "@/lib/server/viewer";
 import { currentTeamFor, teamWithRoster } from "@/lib/server/teams";
 import { rosterView } from "@/lib/server/roster-view";
@@ -24,6 +26,7 @@ export default async function TeamRosterPage() {
   const team = (await teamWithRoster(current.team.id))!;
   const canManage = canManageRoster(user, team);
   const view = rosterView(team, user.userId);
+  const components = await listComponents(team.id);
   return (
     <div className="space-y-5">
       <PageHeader
@@ -32,6 +35,14 @@ export default async function TeamRosterPage() {
       />
       <Card title="Members and TSPi roles">
         <RosterManager teamId={team.id} members={view.rows} canManage={canManage} errors={view.errors} warnings={view.warnings} />
+      </Card>
+      <Card title="Components">
+        <ComponentsManager
+          teamId={team.id}
+          rows={components}
+          canEdit={canEditTeamForms(user, team)}
+          teammates={view.rows.map((m) => ({ value: m.membershipId, label: m.name }))}
+        />
       </Card>
       {canManage ? (
         <Card title="Team details">

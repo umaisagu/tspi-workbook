@@ -9,6 +9,7 @@ import {
   canReadIndividualForm,
   canReadLecturerNotes,
   canReadPeer,
+  canReadComments,
   canViewMonitoring,
   canViewTeam,
   type Viewer,
@@ -122,5 +123,16 @@ describe("comments and monitoring", () => {
     expect(canReadLecturerNotes(demoG1)).toBe(false);
     expect(canReadLecturerNotes(lecturer)).toBe(true);
     expect(canManageMonitoring(demoG1)).toBe(false);
+  });
+});
+
+describe("comments", () => {
+  it("follow the form's read access", () => {
+    expect(canReadComments(memberA, teamA, "LOGT", "mA2")).toBe(true);
+    expect(canReadComments(memberA, teamA, "LOGT", "mA1")).toBe(false);
+    expect(canReadComments(memberA, teamA, "TASK", null)).toBe(true);
+    expect(canReadComments(demoG1, teamA, "LOGD", "mA1")).toBe(true);
+    expect(canReadComments(demoG1, teamA, "PEER", "mA1")).toBe(false);
+    expect(canReadComments(memberA, teamA, "LOGT", null)).toBe(false);
   });
 });

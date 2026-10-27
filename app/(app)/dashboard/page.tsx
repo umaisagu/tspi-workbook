@@ -59,7 +59,13 @@ export default async function DashboardPage() {
           </ul>
         </Card>
       </div>
-      <Alert kind="info">Forms (FORM-SI, LOGT, LOGD, LOGAI, …) and your hours and tasks will appear here as they are built.</Alert>
+      <Alert kind="info">
+        Fill in FORM-SI, LOGT, LOGD and LOGAI under{" "}
+        <Link href="/forms" className="underline">
+          Forms
+        </Link>
+        . Your hours, tasks and contribution figures will appear here in a later stage.
+      </Alert>
     </div>
   );
 }

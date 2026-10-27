@@ -9,7 +9,7 @@ Stack: Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQL + Pr
 ## Status
 
 - [x] Stage 1 — project setup, database schema, authentication and roles
-- [ ] Stage 2 — FORM-SI, LOGT, LOGD, LOGAI
+- [x] Stage 2 — FORM-SI, LOGT, LOGD, LOGAI
 - [ ] Stage 3 — TASK, SCHEDULE, earned value, SUMTASK
 - [ ] Stage 4 — SUMS, SUMP, SUMQ
 - [ ] Stage 5 — LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
@@ -40,6 +40,10 @@ npm run dev                   # http://localhost:3000
 Seeded accounts (password `tspi-dev-2026`): `lecturer@unimas.my`, demonstrators `demo1@siswa.unimas.my`
 and `demo2@siswa.unimas.my`, team leaders `84001@siswa.unimas.my` and `84011@siswa.unimas.my`,
 members `84002`–`84006` and `84012`–`84015` `@siswa.unimas.my`.
+
+The seed generates FORM-SI, LOGT, LOGD and LOGAI data up to the current semester week. Two members are
+deliberately unusual: `84005` (Elvis) stops logging two weeks before today, and `84012` (Haziq) enters most of his
+LOGT in one sitting just before the M1 deadline. `84015` has not submitted FORM-SI.
 
 Without SMTP settings, password-reset links are printed in the dev server's log.
 

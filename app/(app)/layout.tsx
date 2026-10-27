@@ -7,7 +7,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const user = await requirePageUser();
   const links: { href: string; label: string }[] = [];
   if (user.appRole === "STUDENT") {
-    links.push({ href: "/dashboard", label: "Dashboard" }, { href: "/team/roster", label: "Team" });
+    links.push({ href: "/dashboard", label: "Dashboard" }, { href: "/forms", label: "Forms" }, { href: "/team/roster", label: "Team" });
   }
   if (isStaff(user)) links.push({ href: "/monitor", label: "Monitor" });
   if (isLecturer(user)) links.push({ href: "/admin", label: "Admin" }, { href: "/admin/users", label: "Users" });
