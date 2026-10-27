@@ -2,7 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { activeMembershipIn, canComment, isStaff } from "@/lib/auth/permissions";
+import { activeMembershipIn, canComment, canEditScheduleRow, canEditTeamForms, canReadTeamForms, isStaff } from "@/lib/auth/permissions";
+import type { FormType } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
+import type { CurrentUser } from "@/lib/server/viewer";
+import { loadPlanning } from "@/lib/server/forms/planning";
+import { TaskForm } from "@/components/forms/task-form";
+import { ScheduleForm } from "@/components/forms/schedule-form";
+import { SumTaskView } from "@/components/forms/sumtask-view";
+import { PlanningCharts } from "@/components/charts/planning-charts";
 import { AVAILABLE_FORMS, FORM_INFO, formFromSlug } from "@/lib/forms";
 import { HttpError } from "@/lib/server/http";
 import { requirePageUser } from "@/lib/server/viewer";
@@ -42,13 +50,14 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
   const { teamId, form: slug } = await params;
   const sp = await searchParams;
   const form = formFromSlug(slug);
-  if (!form || !AVAILABLE_FORMS.includes(form) || !FORM_INFO[form].individual) notFound();
+  if (!form || !AVAILABLE_FORMS.includes(form)) notFound();
 
   const team = await db.team.findUnique({
     where: { id: teamId },
     include: { labGroup: { include: { semester: true } } },
   });
   if (!team) notFound();
+  if (!FORM_INFO[form].individual) return <TeamFormPage user={user} team={team} form={form} />;
   const teammates = await listTeammates(teamId);
   const own = activeMembershipIn(user, teamId);
   const memberParam = typeof sp.member === "string" ? sp.member : undefined;
@@ -173,6 +182,74 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
       <p className="text-xs text-slate-500">
         {comments.length > 0 ? `Last comment ${dateFmt.format(new Date(comments.at(-1)!.createdAt))}. ` : ""}Entries keep who created and changed them, and when.
       </p>
+    </div>
+  );
+}
+
+type TeamWithSemester = Prisma.TeamGetPayload<{ include: { labGroup: { include: { semester: true } } } }>;
+
+/** Team-level forms: TASK, SCHEDULE, SUMTASK (read by the team and its staff; edited by the Team Leader). */
+async function TeamFormPage({ user, team, form }: { user: CurrentUser; team: TeamWithSemester; form: FormType }) {
+  if (!canReadTeamForms(user, team)) notFound();
+  const [planning, comments, components, teammates] = await Promise.all([
+    loadPlanning(team.id),
+    listComments(team.id, form, null),
+    listComponents(team.id),
+    listTeammates(team.id),
+  ]);
+  const canEdit = canEditTeamForms(user, team);
+  let body: React.ReactNode;
+  if (form === "TASK") {
+    body = (
+      <TaskForm
+        teamId={team.id}
+        rows={planning.tasks}
+        canEdit={canEdit}
+        currentWeek={planning.currentWeek}
+        hiddenPhases={planning.semester.hiddenPhases}
+        components={components.map((c) => ({ value: c.id, label: c.name }))}
+        members={teammates.map((t) => ({ value: t.membershipId, label: t.name }))}
+      />
+    );
+  } else if (form === "SCHEDULE") {
+    body = (
+      <div className="space-y-6">
+        <Card>
+          <PlanningCharts weeks={planning.schedule.weeks} currentWeek={planning.currentWeek} />
+        </Card>
+        <ScheduleForm
+          teamId={team.id}
+          planning={planning}
+          editableMemberIds={planning.scheduleGrid.filter((r) => r.active && canEditScheduleRow(user, team, r.membershipId)).map((r) => r.membershipId)}
+        />
+      </div>
+    );
+  } else {
+    body = <SumTaskView data={planning.sumtask} />;
+  }
+  const readOnly = form === "SUMTASK" ? "computed from TASK and LOGT" : form === "SCHEDULE" ? null : !canEdit ? "read-only" : null;
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title={FORM_INFO[form].title}
+        subtitle={
+          <>
+            {team.name} · {team.labGroup.semester.name} · week {planning.currentWeek}
+            {readOnly && <span className="ml-2 text-slate-500">({readOnly})</span>}
+          </>
+        }
+        actions={
+          isStaff(user) ? undefined : (
+            <Link href="/forms" className="text-sm text-blue-700 hover:underline">
+              ← All forms
+            </Link>
+          )
+        }
+      />
+      {body}
+      <Card title="Comments">
+        <CommentsPanel teamId={team.id} form={form} membershipId={null} comments={comments} canComment={canComment(user, team)} />
+      </Card>
     </div>
   );
 }

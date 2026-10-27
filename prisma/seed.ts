@@ -10,6 +10,7 @@ import { scriptClient } from "../scripts/db-client";
 import { MILESTONE_DEFAULTS, milestoneDueAt } from "../lib/tsp/milestones";
 import type { TspiRole } from "../generated/prisma/enums";
 import { seedLogs, type Profile, type SeedMember } from "./seed-logs";
+import { seedPlan } from "./seed-plan";
 
 const DEV_PASSWORD = "tspi-dev-2026";
 
@@ -202,9 +203,19 @@ async function main() {
           }),
         );
       }
+      const tasks = await seedPlan(db, {
+        teamId: team.id,
+        members,
+        components: components.map((c) => ({ id: c.id, name: c.name, code: c.name !== "SRS & Proposal", ownerMembershipId: c.ownerMembershipId })),
+        week1: week1Monday,
+        weekCount: semester.weekCount,
+        breakWeeks: semester.breakWeeks,
+        seed: 3000 + seedNo,
+      });
       const { currentWeek } = await seedLogs(db, {
         teamId: team.id,
         members,
+        tasks,
         components: components.map((c) => ({ id: c.id, name: c.name, code: c.name !== "SRS & Proposal" })),
         week1: week1Monday,
         breakWeeks: semester.breakWeeks,

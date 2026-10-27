@@ -104,6 +104,8 @@ export async function seedLogs(
     teamId: string;
     members: SeedMember[];
     components: { id: string; name: string; code: boolean }[];
+    /** TASK rows to link LOGT sessions to (same phase, own tasks first, nearest plan week). */
+    tasks?: { id: string; phase: Phase; planWeek: number | null; assigneeId: string }[];
     week1: Date;
     breakWeeks: number[];
     latestDeadline: Date;
@@ -126,6 +128,11 @@ export async function seedLogs(
       if (m.profile === "inactive" && week > currentWeek - 2) continue;
       const backfilled = m.profile === "backfill" && myTime(weekStart(week, opts.week1), 0, 0) < opts.latestDeadline;
       for (const s of sessionsForWeek(r, week, m, opts.week1, today)) {
+        const samePhase = (opts.tasks ?? []).filter((t) => t.phase === s.phase);
+        const own = samePhase.filter((t) => t.assigneeId === m.membershipId);
+        const candidates = own.length > 0 ? own : samePhase;
+        candidates.sort((a, b) => Math.abs((a.planWeek ?? 99) - week) - Math.abs((b.planWeek ?? 99) - week));
+        const taskId = candidates.length > 0 && r() < 0.85 ? candidates[0]!.id : null;
         const componentId = DOC_PHASES.includes(s.phase) ? (docComponent?.id ?? null) : s.phase === "MGMT" ? null : pick(r, codeComponents).id;
         const loggedAt = backfilled
           ? // all entered in one evening session, an hour or two before the deadline
@@ -141,6 +148,7 @@ export async function seedLogs(
             deltaMin: s.stopMin - s.startMin - s.interruptMin,
             phase: s.phase,
             componentId,
+            taskId,
             comments: pick(r, [null, null, "Team meeting", "Pair programming", "Client meeting prep", "Lab session", "Reading docs"]),
             createdAt: loggedAt > now ? now : loggedAt,
             updatedAt: loggedAt > now ? now : loggedAt,

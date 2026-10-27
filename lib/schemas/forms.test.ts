@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aiLogSchema, defectLogSchema, studentInfoSchema, timeLogSchema } from "./forms";
+import { aiLogSchema, defectLogSchema, studentInfoSchema, taskSchema, timeLogSchema } from "./forms";
 import { COMMITMENT_DAYS, COMMITMENT_SLOTS, SKILL_AREAS } from "@/lib/tsp/student-info";
 
 describe("LOGT schema", () => {
@@ -93,5 +93,26 @@ describe("FORM-SI schema", () => {
   it("needs a place when residence is Other", () => {
     const r = studentInfoSchema.safeParse({ ...valid, residence: "Other" });
     expect(r.success).toBe(false);
+  });
+});
+
+describe("TASK schema", () => {
+  it("takes entered plan hours", () => {
+    expect(taskSchema.parse({ name: "Code login", phase: "CODE", planHours: "6.5" }).planHours).toBe(6.5);
+  });
+  it("estimates plan hours from size / rate when left empty", () => {
+    const t = taskSchema.parse({ name: "Code login", phase: "CODE", planHours: "", estSize: "400", sizeMeasure: "LOC", rate: "40" });
+    expect(t.planHours).toBe(10);
+  });
+  it("needs plan hours or a size and rate", () => {
+    const r = taskSchema.safeParse({ name: "Code login", phase: "CODE", planHours: "" });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0]?.path).toEqual(["planHours"]);
+  });
+  it("needs a size measure with a size", () => {
+    expect(taskSchema.safeParse({ name: "x", phase: "CODE", planHours: "1", estSize: "10" }).success).toBe(false);
+  });
+  it("accepts an empty completion date", () => {
+    expect(taskSchema.parse({ name: "x", phase: "CODE", planHours: "1", completedOn: "" }).completedOn).toBeNull();
   });
 });

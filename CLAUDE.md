@@ -51,10 +51,12 @@ Never run `migrate dev` or the seed against production. The seed refuses non-loc
 app/(auth)/…            login, register, forgot-password, reset-password
 app/(app)/…             signed-in pages (layout loads the user and nav)
 app/api/…               route handlers; every handler wrapped in route() from lib/server/http.ts
+components/charts       line-chart.tsx (SVG, crosshair tooltip, legend, direct labels, table view), planning-charts.tsx
 components/ui|roster|admin|forms   forms/log-table.tsx = generic editable table (add/edit/delete, Zod inline validation, week/phase filters)
 lib/forms.ts            form slugs/titles; AVAILABLE_FORMS lists the forms with pages
 lib/server/forms/       access.ts (individualFormAccess / requireTeamForm), refs.ts (cross-record checks), loaders
-lib/tsp/                pure TSPi formulas + tests (calendar, phases, roles, milestones, time, defects, ai-log, student-info)
+lib/tsp/                pure TSPi formulas + tests (calendar, phases, roles, milestones, time, defects, ai-log, student-info,
+                        earned-value (TASK/SCHEDULE/EV/predictions), sumtask)
 lib/monitoring/         pure contribution-flag logic + tests (Stage 6)
 lib/auth/               Auth.js config, permissions.ts (pure, tested), email/rate-limit helpers
 lib/schemas/            Zod schemas (shared)
@@ -110,6 +112,22 @@ docs/                   course reference material (do not edit) + workbook-formu
 - Comments: lecturer and the group's demonstrator post; anyone who can read the form reads them. No comments on PEER.
 - Deletes are soft (`deletedAt`); every list query filters `deletedAt: null`.
 
+## Planning rules (Stage 3)
+
+- TASK (Team Leader edits; team reads): plan hours entered, or left empty to use size ÷ rate. PV = plan hours /
+  total plan hours; plan week = first week whose cumulative SCHEDULE hours cover the task's cumulative plan hours
+  (tasks in `order`); EV = PV credited in the completion week (`completedOn`, no future dates). Actual hours =
+  Σ LOGT delta linked to the task. Deleted tasks drop out of the plan.
+- SCHEDULE: plan hours per member per week (`ScheduleWeek`); a member edits their own row, the Team Leader any row;
+  team plan = sum. Actual hours = Σ LOGT of the team by week (up to the current week). Predicted EV/hours for
+  future weeks = average per working week so far (from the first planned week; break weeks excluded and get 0).
+  Warning when task plan hours exceed schedule hours.
+- SUMTASK (read-only): per task deviation, CPI = plan/actual, plan vs done week, weeks late, status
+  (done/overdue/in progress/not started); roll-ups by member, phase, component; LOGT hours not linked to a task.
+- All of it is computed in `lib/server/forms/planning.ts` → `lib/tsp/earned-value.ts` + `lib/tsp/sumtask.ts`.
+- Charts use the dataviz reference palette slots 1–2 (blue #2a78d6 planned, orange #eb6834 earned/actual,
+  dashed orange predicted); validated with the dataviz validator. One y-axis per chart.
+
 ## Decisions (defaults chosen at plan approval; change here if the lecturer decides otherwise)
 
 1. SUMS plan/actual sizes (Base, Deleted, Modified, Added, Reused), SUMQ plan injection rates and plan
@@ -119,7 +137,8 @@ docs/                   course reference material (do not edit) + workbook-formu
    Component (= workbook Assembly).
 3. TASK: one assigned member, plan hours, optional size/measure/rate; plan value is computed
    (plan hours / total plan hours).
-4. SCHEDULE plan hours are entered per member per week; the team plan is their sum.
+4. SCHEDULE plan hours are entered per member per week (each member their own row, Team Leader any row);
+   the team plan is their sum.
 5. WEEK reports from Week 5 (the prompt's choice; the brief says "after the first milestone"), due before
    the following Wednesday lab (configurable later).
 6. LOGAI IDs `AI-001…` numbered per student; reviewer is a teammate; `approved` flag.
@@ -139,6 +158,6 @@ docs/                   course reference material (do not edit) + workbook-formu
 
 ## Stages
 
-1. ✅ Setup, schema, auth and roles  2. ✅ FORM-SI, LOGT, LOGD, LOGAI  3. TASK, SCHEDULE, EV, SUMTASK
+1. ✅ Setup, schema, auth and roles  2. ✅ FORM-SI, LOGT, LOGD, LOGAI  3. ✅ TASK, SCHEDULE, EV, SUMTASK
 4. SUMS, SUMP, SUMQ  5. LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
 6. Monitoring, flags, GitHub, exports  7. Production hardening, Vercel/Neon, cron, backups, DEPLOY.md

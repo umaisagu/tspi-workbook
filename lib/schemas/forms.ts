@@ -3,6 +3,7 @@ import { phaseSchema, tspiRoleSchema } from "./admin";
 import { parseClock, timeEntryErrors } from "@/lib/tsp/time";
 import { defectPhaseErrors, isDefectType } from "@/lib/tsp/defects";
 import { PHASES } from "@/lib/tsp/phases";
+import { estimatedHours } from "@/lib/tsp/earned-value";
 import {
   CHATGPT_PLANS,
   CLAUDE_PLANS,
@@ -194,6 +195,57 @@ export const studentInfoSchema = z
     }
   });
 export type StudentInfoInput = z.infer<typeof studentInfoSchema>;
+
+// ---------- TASK ----------
+
+const optionalNumber = (label: string, min: number, max: number) =>
+  z
+    .union([z.literal(""), z.null(), z.undefined(), z.coerce.number({ error: `Enter ${label} as a number` }).min(min, `${label} must be at least ${min}`).max(max)])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? null : v));
+
+export const sizeMeasureSchema = z.enum(["TEXT_PAGES", "REQ_PAGES", "HLD_PAGES", "DLD_LINES", "LOC"]);
+
+/**
+ * A TASK row. Plan hours are entered, or left empty to use the estimate size / rate (workbook TASK).
+ * Plan value, plan week, actual hours and earned value are always computed.
+ */
+export const taskSchema = z
+  .object({
+    order: optionalNumber("the order", 0, 100000),
+    name: requiredText("the task name", 200),
+    phase: phaseSchema,
+    componentId: optionalId,
+    assigneeMembershipId: optionalId,
+    planHours: optionalNumber("plan hours", 0, 1000),
+    estSize: optionalNumber("the estimated size", 0, 1000000),
+    sizeMeasure: z
+      .union([sizeMeasureSchema, z.literal(""), z.null(), z.undefined()])
+      .optional()
+      .transform((v) => (v ? v : null)),
+    rate: optionalNumber("the rate", 0, 100000),
+    completedOn: z
+      .union([dateOnlySchema, z.literal(""), z.null(), z.undefined()])
+      .optional()
+      .transform((v) => (v ? v : null)),
+  })
+  .superRefine((v, ctx) => {
+    if (v.planHours === null && estimatedHours(v.estSize, v.rate) === null) {
+      ctx.addIssue({ code: "custom", path: ["planHours"], message: "Enter plan hours, or a size and rate to estimate them" });
+    }
+    if (v.estSize !== null && !v.sizeMeasure) ctx.addIssue({ code: "custom", path: ["sizeMeasure"], message: "Choose the size measure" });
+  })
+  .transform((v) => ({ ...v, planHours: v.planHours ?? estimatedHours(v.estSize, v.rate) ?? 0 }));
+export type TaskInput = z.output<typeof taskSchema>;
+
+// ---------- SCHEDULE ----------
+
+export const scheduleRowSchema = z.object({
+  membershipId: z.string().min(1),
+  weeks: z
+    .array(z.object({ week: z.coerce.number().int().min(1).max(30), planHours: z.coerce.number().min(0, "Hours cannot be negative").max(80, "At most 80 hours a week") }))
+    .max(30),
+});
 
 // ---------- Components and comments ----------
 

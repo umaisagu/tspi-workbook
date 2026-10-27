@@ -82,6 +82,14 @@ export function canEditTeamForms(v: Viewer, team: TeamRef): boolean {
 }
 
 /**
+ * SCHEDULE plan hours are entered per member: each member edits their own row, the Team Leader edits any row.
+ */
+export function canEditScheduleRow(v: Viewer, team: TeamRef, membershipId: string): boolean {
+  if (isTeamLeaderOf(v, team.id)) return true;
+  return activeMembershipIn(v, team.id)?.membershipId === membershipId;
+}
+
+/**
  * Individual forms (SI, LOGT, LOGD, LOGAI, PEER): the owner, the lecturer, and the demonstrator
  * of the team's lab group may read them; PEER is restricted further (see canReadPeer).
  */

@@ -61,6 +61,7 @@ Cumulative Predicted Hours, Predicted EV, Cumulative Predicted EV.
 - `PV (week) = Σ Plan Value of tasks whose Plan Week = week`.
 - `EV (week) = Σ Plan Value of tasks completed in that week`.
 - `Predicted EV` = based on average weekly EV to date (projects the remaining weeks).
+  *App: average over working weeks since the first planned week; break weeks are excluded and predict 0.*
 - Consolidation (VBA): team plan = sum of member plans; member PV/EV are weighted by
   `member plan hours / team plan hours`.
 

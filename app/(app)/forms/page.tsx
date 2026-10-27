@@ -50,7 +50,17 @@ export default async function FormsPage() {
           </Link>
         ))}
       </div>
-      <Alert kind="info">Team forms (TASK, SCHEDULE, LOGTEST, WEEK, summaries) arrive in the next stages.</Alert>
+      <h2 className="pt-2 text-lg font-semibold">Team forms</h2>
+      <div className="grid gap-3 md:grid-cols-3">
+        {AVAILABLE_FORMS.filter((f) => !FORM_INFO[f].individual).map((f) => (
+          <Link key={f} href={`/t/${team.id}/forms/${FORM_INFO[f].slug}`} className="block">
+            <Card title={FORM_INFO[f].title}>
+              <p className="text-sm text-slate-600">{FORM_INFO[f].description}</p>
+            </Card>
+          </Link>
+        ))}
+      </div>
+      <Alert kind="info">LOGTEST, WEEK, PEER, CCR and the size and quality summaries arrive in the next stages.</Alert>
     </div>
   );
 }

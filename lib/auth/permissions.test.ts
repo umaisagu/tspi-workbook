@@ -10,6 +10,7 @@ import {
   canReadLecturerNotes,
   canReadPeer,
   canReadComments,
+  canEditScheduleRow,
   canViewMonitoring,
   canViewTeam,
   type Viewer,
@@ -134,5 +135,16 @@ describe("comments", () => {
     expect(canReadComments(demoG1, teamA, "LOGD", "mA1")).toBe(true);
     expect(canReadComments(demoG1, teamA, "PEER", "mA1")).toBe(false);
     expect(canReadComments(memberA, teamA, "LOGT", null)).toBe(false);
+  });
+});
+
+describe("SCHEDULE rows", () => {
+  it("members edit their own row, the team leader edits any", () => {
+    expect(canEditScheduleRow(memberA, teamA, "mA2")).toBe(true);
+    expect(canEditScheduleRow(memberA, teamA, "mA1")).toBe(false);
+    expect(canEditScheduleRow(leaderA, teamA, "mA2")).toBe(true);
+    expect(canEditScheduleRow(lecturer, teamA, "mA2")).toBe(false);
+    expect(canEditScheduleRow(demoG1, teamA, "mA2")).toBe(false);
+    expect(canEditScheduleRow(formerMemberA, teamA, "mA3")).toBe(false);
   });
 });

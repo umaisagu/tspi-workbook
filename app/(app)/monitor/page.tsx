@@ -35,6 +35,13 @@ export default async function MonitorPage() {
               <div key={t.id} className="rounded-md border border-slate-200 p-3">
                 <div className="font-medium">{t.name}</div>
                 <div className="mb-2 text-xs text-slate-500">{t.projectTitle ?? "No project title yet"}</div>
+                <div className="mb-2 space-x-3 text-xs">
+                  {["task", "schedule", "sumtask"].map((f) => (
+                    <Link key={f} href={`/t/${t.id}/forms/${f}`} className="text-blue-700 hover:underline">
+                      {f.toUpperCase()}
+                    </Link>
+                  ))}
+                </div>
                 <ul className="space-y-0.5 text-sm">
                   {t.memberships.map((m) => (
                     <li key={m.id} className="flex flex-wrap items-baseline justify-between gap-x-3">
