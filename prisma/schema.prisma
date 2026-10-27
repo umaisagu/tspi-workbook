@@ -1,0 +1,777 @@
+// TSPi Workbook database schema.
+// Field names follow docs/TSPI_WORKBOOK20020301.xls and the course documents in /docs.
+// Audit trail: every record carries createdAt/updatedAt and createdById/updatedById
+// (user ids; users are deactivated, never deleted). Form rows are soft-deleted.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum AppRole {
+  LECTURER
+  DEMONSTRATOR
+  STUDENT
+}
+
+/// The five TSPi roles (docs/TSP_Student_Information_Sheet.md, section J).
+enum TspiRole {
+  TEAM_LEADER
+  DEVELOPMENT_MANAGER
+  PLANNING_MANAGER
+  QUALITY_PROCESS_MANAGER
+  SUPPORT_MANAGER
+}
+
+/// TSPi process phases, in workbook order (Phases sheet).
+enum Phase {
+  MGMT
+  STRAT
+  PLAN
+  REQ
+  STP
+  REQINSP
+  HLD
+  ITP
+  HLDINSP
+  DLD
+  DLDR
+  TD
+  DLDINSP
+  CODE
+  CR
+  COMPILE
+  CODEINSP
+  UT
+  IT
+  ST
+  DOC
+  PM
+  AT
+  PL
+}
+
+enum SizeMeasure {
+  TEXT_PAGES
+  REQ_PAGES
+  HLD_PAGES
+  DLD_LINES
+  LOC
+}
+
+enum ComponentKind {
+  ASSEMBLY
+  PART
+}
+
+enum TestType {
+  UNIT
+  WIDGET
+  INTEGRATION
+}
+
+enum TestStatus {
+  PASS
+  FAIL
+  BLOCKED
+  NOT_RUN
+}
+
+enum ChangeStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FormType {
+  SI
+  LOGT
+  LOGD
+  LOGAI
+  PEER
+  TASK
+  SCHEDULE
+  LOGTEST
+  WEEK
+  SUMS
+  SUMP
+  SUMQ
+  SUMTASK
+  CCR
+}
+
+enum FlagType {
+  LOW_SHARE
+  INACTIVE
+  HOURS_NO_OUTPUT
+  BACKFILL
+  PEER_MISMATCH
+  MISSING_FORMS
+}
+
+enum FlagStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+enum GitHubActivityKind {
+  COMMIT
+  PULL_REQUEST
+  REVIEW
+}
+
+// ---------- Users and authentication ----------
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  passwordHash   String
+  appRole        AppRole  @default(STUDENT)
+  isActive       Boolean  @default(true)
+  /// Bumped on password change/reset; sessions carrying an older value are rejected.
+  sessionVersion Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdById    String?
+  updatedById    String?
+
+  memberships    Membership[]
+  demonstratorOf LabGroupDemonstrator[]
+  resetTokens    PasswordResetToken[]
+  comments       FormComment[]
+  notesAuthored  LecturerNote[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 of the token; the token itself is only ever in the e-mail.
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// Fixed-window rate limiting kept in Postgres (serverless: no in-memory state).
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+}
+
+// ---------- Course structure ----------
+
+model Semester {
+  id           String   @id @default(cuid())
+  name         String
+  /// Monday of semester week 1. Week numbers everywhere are computed from this.
+  week1Monday  DateTime @db.Date
+  weekCount    Int      @default(15)
+  /// Weeks with no lab (e.g. mid-term break, week 8).
+  breakWeeks   Int[]
+  /// Phases hidden from students' pick lists (e.g. COMPILE for Flutter); data is kept.
+  hiddenPhases Phase[]
+  isActive     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdById  String?
+  updatedById  String?
+
+  milestones Milestone[]
+  labGroups  LabGroup[]
+  monitoring MonitoringSettings?
+}
+
+model Milestone {
+  id            String     @id @default(cuid())
+  semesterId    String
+  semester      Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  /// M1..M4
+  code          String
+  title         String
+  week          Int
+  dueAt         DateTime
+  requiredForms FormType[]
+  /// Whether PEER evaluations are collected for this milestone.
+  peerRequired  Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  createdById   String?
+  updatedById   String?
+
+  peerEvaluations PeerEvaluation[]
+
+  @@unique([semesterId, code])
+}
+
+model LabGroup {
+  id          String   @id @default(cuid())
+  semesterId  String
+  semester    Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  name        String
+  schedule    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  demonstrators LabGroupDemonstrator[]
+  teams         Team[]
+
+  @@unique([semesterId, name])
+}
+
+model LabGroupDemonstrator {
+  labGroupId  String
+  labGroup    LabGroup @relation(fields: [labGroupId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  @@id([labGroupId, userId])
+}
+
+model Team {
+  id           String   @id @default(cuid())
+  labGroupId   String
+  labGroup     LabGroup @relation(fields: [labGroupId], references: [id], onDelete: Restrict)
+  name         String
+  projectTitle String?
+  clientName   String?
+  /// e.g. https://github.com/org/repo
+  repoUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdById  String?
+  updatedById  String?
+
+  memberships    Membership[]
+  components     Component[]
+  tasks          Task[]
+  scheduleWeeks  ScheduleWeek[]
+  qualityPlan    QualityPlan[]
+  testLogs       TestLog[]
+  weeklyReports  WeeklyReport[]
+  changeRequests ChangeRequest[]
+  comments       FormComment[]
+  notes          LecturerNote[]
+  githubActivity GitHubActivity[]
+  githubSync     GitHubSync?
+
+  @@unique([labGroupId, name])
+}
+
+model Membership {
+  id          String    @id @default(cuid())
+  teamId      String
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt    DateTime  @default(now())
+  /// Set when a member leaves; their records stay with the team.
+  leftAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+
+  roles           RoleAssignment[]
+  studentInfo     StudentInfo?
+  timeLogs        TimeLog[]
+  defectLogs      DefectLog[]
+  aiLogs          AiLog[]          @relation("AiLogAuthor")
+  aiReviews       AiLog[]          @relation("AiLogReviewer")
+  tasksAssigned   Task[]
+  scheduleWeeks   ScheduleWeek[]
+  componentsOwned Component[]
+  testLogs        TestLog[]
+  peerGiven       PeerEvaluation[] @relation("PeerEvaluator")
+  peerReceived    PeerEvaluation[] @relation("PeerEvaluatee")
+  changeRequests  ChangeRequest[]
+  comments        FormComment[]
+  notes           LecturerNote[]
+  flagReviews     FlagReview[]
+  githubActivity  GitHubActivity[]
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+/// TSPi role held by a member. In a 6-member team two members share one role.
+/// Holding TEAM_LEADER grants the app's Team Leader permissions.
+model RoleAssignment {
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  role         TspiRole
+  createdAt    DateTime   @default(now())
+  createdById  String?
+
+  @@id([membershipId, role])
+}
+
+// ---------- Individual forms ----------
+
+/// FORM-SI: Student Information Sheet (docs/TSP_Student_Information_Sheet.md).
+model StudentInfo {
+  id                   String     @id @default(cuid())
+  membershipId         String     @unique
+  membership           Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  // A. Student details
+  fullName             String
+  matricNo             String
+  date                 DateTime   @db.Date
+  programme            String
+  yearOfStudy          Int
+  creditsRegistered    Int
+  expectedGradSemester Int?
+  expectedGradYear     Int?
+  phone                String?
+  githubUsername       String?
+  // B. Technical self-assessment: { [skillKey]: { rating 1-5, evidence } }
+  skills               Json
+  // C. Development resources and AI tool access
+  resources            Json
+  // D-F. Experience
+  experience           String?
+  previousProjects     String?
+  leadership           String?
+  // G. Project and client ideas (optional)
+  clientContact        String?
+  appIdea              String?
+  aiFeatureIdea        String?
+  // H. Team preferences and meeting logistics
+  preferredTeammates   String?
+  residence            String?
+  ownTransport         Boolean?
+  meetingAvailability  String[]
+  // I. Weekly commitments: { [slot]: { [day]: "C" | "W" | "A" } }
+  weeklyCommitments    Json
+  commitmentNotes      String?
+  preferredMeetingSlot String?
+  // J. TSPi role preferences: { [TspiRole]: 1..5 }
+  rolePreferences      Json
+  // K. Declaration
+  declaredAt           DateTime?
+  submittedAt          DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  createdById          String?
+  updatedById          String?
+}
+
+/// LOGT: Time Recording Log. Times are minutes after midnight; deltaMin = stop - start - interrupt.
+model TimeLog {
+  id           String     @id @default(cuid())
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  date         DateTime   @db.Date
+  startMin     Int
+  stopMin      Int
+  interruptMin Int        @default(0)
+  deltaMin     Int
+  phase        Phase
+  componentId  String?
+  component    Component? @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  taskId       String?
+  task         Task?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  comments     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  createdById  String?
+  updatedById  String?
+  deletedAt    DateTime?
+  deletedById  String?
+
+  @@index([membershipId, date])
+  @@index([taskId])
+}
+
+/// LOGD: Defect Recording Log. type uses the workbook's DefectTypes (10..100).
+model DefectLog {
+  id            String      @id @default(cuid())
+  membershipId  String
+  membership    Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  date          DateTime    @db.Date
+  /// Sequential per member.
+  number        Int
+  type          Int
+  componentId   String?
+  component     Component?  @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  phaseInjected Phase
+  phaseRemoved  Phase
+  fixTimeMin    Int
+  /// Defect this fix relates to (workbook "Fix Ref.").
+  fixRefId      String?
+  fixRef        DefectLog?  @relation("DefectFixRef", fields: [fixRefId], references: [id], onDelete: SetNull)
+  fixedBy       DefectLog[] @relation("DefectFixRef")
+  description   String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  createdById   String?
+  updatedById   String?
+  deletedAt     DateTime?
+  deletedById   String?
+
+  @@unique([membershipId, number])
+}
+
+/// LOGAI: AI Usage Log (docs/TMA3084_Lab_Outline.md, AI usage rules section 2).
+model AiLog {
+  id                   String      @id @default(cuid())
+  membershipId         String
+  membership           Membership  @relation("AiLogAuthor", fields: [membershipId], references: [id], onDelete: Cascade)
+  /// AI-001, AI-002, ... per member.
+  code                 String
+  date                 DateTime    @db.Date
+  module               String
+  tool                 String
+  model                String
+  promptSpec           String
+  outputSummary        String
+  humanRefinement      String
+  testEvidence         String
+  prUrl                String?
+  reviewerMembershipId String?
+  reviewer             Membership? @relation("AiLogReviewer", fields: [reviewerMembershipId], references: [id], onDelete: SetNull)
+  approved             Boolean     @default(false)
+  approvedAt           DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  createdById          String?
+  updatedById          String?
+  deletedAt            DateTime?
+  deletedById          String?
+
+  @@unique([membershipId, code])
+}
+
+/// PEER: self-rating (evaluator = evaluatee) and evaluation of each teammate, per milestone.
+/// scores: { [criterion]: 1..5 } using the 10 criteria of the Peer/Individual Evaluation rubric.
+/// Visible only to the evaluator and the Lecturer.
+model PeerEvaluation {
+  id          String     @id @default(cuid())
+  milestoneId String
+  milestone   Milestone  @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  evaluatorId String
+  evaluator   Membership @relation("PeerEvaluator", fields: [evaluatorId], references: [id], onDelete: Cascade)
+  evaluateeId String
+  evaluatee   Membership @relation("PeerEvaluatee", fields: [evaluateeId], references: [id], onDelete: Cascade)
+  scores      Json
+  comment     String?
+  submittedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  createdById String?
+  updatedById String?
+
+  @@unique([milestoneId, evaluatorId, evaluateeId])
+}
+
+// ---------- Team-level forms ----------
+
+/// SUMS assembly/part; also the "component" on LOGT, LOGD and TASK.
+/// Plan/actual sizes are entered (as in the workbook); N&C and Total are computed in lib/tsp.
+model Component {
+  id                String        @id @default(cuid())
+  teamId            String
+  team              Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name              String
+  kind              ComponentKind @default(ASSEMBLY)
+  parentId          String?
+  parent            Component?    @relation("ComponentParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children          Component[]   @relation("ComponentParent")
+  ownerMembershipId String?
+  owner             Membership?   @relation(fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  sizeMeasure       SizeMeasure   @default(LOC)
+  planBase          Int           @default(0)
+  planDeleted       Int           @default(0)
+  planModified      Int           @default(0)
+  planAdded         Int           @default(0)
+  planReused        Int           @default(0)
+  planNewReuse      Int           @default(0)
+  actBase           Int           @default(0)
+  actDeleted        Int           @default(0)
+  actModified       Int           @default(0)
+  actAdded          Int           @default(0)
+  actReused         Int           @default(0)
+  actNewReuse       Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  createdById       String?
+  updatedById       String?
+  deletedAt         DateTime?
+  deletedById       String?
+
+  timeLogs   TimeLog[]
+  defectLogs DefectLog[]
+  tasks      Task[]
+  quality    QualityPlan[]
+  changes    ChangeRequest[]
+
+  @@unique([teamId, name])
+}
+
+/// TASK: Task Planning Template. PV, plan week, actual hours, EV are computed in lib/tsp.
+model Task {
+  id                   String       @id @default(cuid())
+  teamId               String
+  team                 Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  order                Int          @default(0)
+  name                 String
+  phase                Phase
+  componentId          String?
+  component            Component?   @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  assigneeMembershipId String?
+  assignee             Membership?  @relation(fields: [assigneeMembershipId], references: [id], onDelete: SetNull)
+  planHours            Decimal      @db.Decimal(8, 2)
+  estSize              Decimal?     @db.Decimal(10, 2)
+  sizeMeasure          SizeMeasure?
+  /// Units per hour; estimated hours = estSize / rate.
+  rate                 Decimal?     @db.Decimal(10, 2)
+  /// Workbook "Actual Date": the task is 100% complete on this date.
+  completedOn          DateTime?    @db.Date
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  createdById          String?
+  updatedById          String?
+  deletedAt            DateTime?
+  deletedById          String?
+
+  timeLogs TimeLog[]
+
+  @@index([teamId])
+}
+
+/// SCHEDULE: weekly plan hours, entered per member; the team plan is their sum.
+model ScheduleWeek {
+  id           String     @id @default(cuid())
+  teamId       String
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  week         Int
+  planHours    Decimal    @db.Decimal(6, 2)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  createdById  String?
+  updatedById  String?
+
+  @@unique([membershipId, week])
+  @@index([teamId, week])
+}
+
+/// SUMQ plan inputs per phase: planned defect injection rate (defects/hour) and planned phase yield (0..1).
+/// componentId null = SYSTEM.
+model QualityPlan {
+  id                String     @id @default(cuid())
+  teamId            String
+  team              Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  componentId       String?
+  component         Component? @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  phase             Phase
+  planInjectionRate Decimal?   @db.Decimal(8, 3)
+  planYield         Decimal?   @db.Decimal(5, 4)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  createdById       String?
+  updatedById       String?
+
+  @@unique([teamId, componentId, phase])
+}
+
+/// LOGTEST: Test Log.
+model TestLog {
+  id                 String     @id @default(cuid())
+  teamId             String
+  team               Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  authorMembershipId String
+  author             Membership @relation(fields: [authorMembershipId], references: [id], onDelete: Cascade)
+  testCode           String
+  module             String
+  description        String
+  type               TestType
+  expected           String
+  actual             String?
+  status             TestStatus @default(NOT_RUN)
+  date               DateTime   @db.Date
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  createdById        String?
+  updatedById        String?
+  deletedAt          DateTime?
+  deletedById        String?
+
+  @@unique([teamId, testCode])
+}
+
+/// WEEK: Weekly status report. Computed figures are snapshotted when submitted.
+model WeeklyReport {
+  id             String    @id @default(cuid())
+  teamId         String
+  team           Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  week           Int
+  tasksCompleted String?
+  risksIssues    String?
+  nextWeekPlan   String?
+  snapshot       Json?
+  submittedAt    DateTime?
+  submittedById  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdById    String?
+  updatedById    String?
+
+  @@unique([teamId, week])
+}
+
+/// CCR: Configuration Change Request (optional form).
+model ChangeRequest {
+  id                    String       @id @default(cuid())
+  teamId                String
+  team                  Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  number                Int
+  date                  DateTime     @db.Date
+  requesterMembershipId String
+  requester             Membership   @relation(fields: [requesterMembershipId], references: [id], onDelete: Cascade)
+  componentId           String?
+  component             Component?   @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  description           String
+  reason                String
+  impact                String?
+  priority              Priority     @default(MEDIUM)
+  status                ChangeStatus @default(SUBMITTED)
+  decidedById           String?
+  decidedAt             DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  createdById           String?
+  updatedById           String?
+  deletedAt             DateTime?
+  deletedById           String?
+
+  @@unique([teamId, number])
+}
+
+// ---------- Review, monitoring and GitHub ----------
+
+/// Comments on forms by demonstrators, the lecturer and team members.
+model FormComment {
+  id           String      @id @default(cuid())
+  teamId       String
+  team         Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  formType     FormType
+  /// Optional row id within the form.
+  recordId     String?
+  /// For individual forms: whose form it is.
+  membershipId String?
+  membership   Membership? @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body         String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([teamId, formType])
+}
+
+/// Private lecturer notes on a team or a member. Never shown to students.
+model LecturerNote {
+  id           String      @id @default(cuid())
+  teamId       String?
+  team         Team?       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  membershipId String?
+  membership   Membership? @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body         String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+/// Thresholds for contribution flags (shape validated by lib/schemas).
+model MonitoringSettings {
+  id          String   @id @default(cuid())
+  semesterId  String   @unique
+  semester    Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  thresholds  Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+}
+
+/// Flags are computed on the fly; this records each review/dismissal (the flag history).
+model FlagReview {
+  id           String     @id @default(cuid())
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  type         FlagType
+  /// Identifies the period the flag covers, e.g. "M2" or "W6-W8".
+  periodKey    String
+  status       FlagStatus
+  reason       String?
+  /// Evidence as it was when reviewed.
+  evidence     Json
+  reviewedById String
+  createdAt    DateTime   @default(now())
+
+  @@index([membershipId, type, periodKey])
+}
+
+model GitHubActivity {
+  id           String             @id @default(cuid())
+  teamId       String
+  team         Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  membershipId String?
+  membership   Membership?        @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  login        String
+  kind         GitHubActivityKind
+  /// e.g. commit sha, PR number, review id (prefixed by kind and repo).
+  externalId   String             @unique
+  occurredAt   DateTime
+  url          String
+  title        String?
+  createdAt    DateTime           @default(now())
+
+  @@index([teamId, occurredAt])
+}
+
+model GitHubSync {
+  teamId       String    @id
+  team         Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  lastSyncedAt DateTime?
+  lastError    String?
+  updatedAt    DateTime  @updatedAt
+}
+
+// ---------- Deployment ----------
+
+/// Facts about this database, e.g. key "environment" = production | preview | development.
+/// Set by scripts/deploy-target.ts on the first build against the database; checked on every build after that.
+model AppMeta {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
