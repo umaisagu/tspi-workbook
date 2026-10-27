@@ -32,6 +32,8 @@ For each of **tspi-production** and **tspi-preview**:
    - **Pooled** (host contains `-pooler`) → `DATABASE_URL`, used by the app.
    - **Direct** (connection pooling switched off) → `DIRECT_URL`, used by migrations, the build guard and backups.
    Both end in `?sslmode=require`.
+   With the Neon CLI, `neon env pull` writes the same two strings as `DATABASE_URL` (pooled) and
+   `DATABASE_URL_UNPOOLED` (direct); the app accepts `DATABASE_URL_UNPOOLED` wherever `DIRECT_URL` is mentioned below.
 
 Keep the production strings in a password manager. Do not paste them into chats, issues or commits.
 
@@ -61,7 +63,7 @@ Preview deployments also require SMTP; use a test inbox service there so student
    | Variable | Production | Preview |
    | --- | --- | --- |
    | `DATABASE_URL` | tspi-production pooled | tspi-preview pooled |
-   | `DIRECT_URL` | tspi-production direct | tspi-preview direct |
+   | `DIRECT_URL` (or `DATABASE_URL_UNPOOLED`) | tspi-production direct | tspi-preview direct |
    | `AUTH_SECRET` | its own value | its own value |
    | `APP_URL` | `https://<your production domain>` | your preview branch URL |
    | `ALLOWED_EMAIL_DOMAINS` | `siswa.unimas.my,unimas.my` | same |

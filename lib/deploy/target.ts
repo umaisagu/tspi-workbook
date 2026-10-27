@@ -18,7 +18,7 @@ export function checkTarget(target: DeployTarget, marker: string | null): Target
     ok: false,
     message:
       `This database is marked "${marker}", but this is a ${target} build. ` +
-      `Check DATABASE_URL and DIRECT_URL for the ${target} environment in Vercel (each environment needs its own Neon database). ` +
+      `Check DATABASE_URL and DIRECT_URL (or DATABASE_URL_UNPOOLED) for the ${target} environment in Vercel (each environment needs its own Neon database). ` +
       `Nothing was changed. See DEPLOY.md, "Environments".`,
   };
 }

@@ -1,4 +1,5 @@
 import { z } from "@/lib/schemas/zod";
+import { connectionStringProblem } from "@/lib/deploy/db-urls";
 
 /**
  * Environment variables, validated once. Required variables missing → a clear error at startup
@@ -16,6 +17,8 @@ const optional = z
 const baseSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required (Neon pooled connection string)"),
   DIRECT_URL: optional,
+  /** Neon's name for the direct connection (neon env pull, Vercel's Neon integration); same role as DIRECT_URL. */
+  DATABASE_URL_UNPOOLED: optional,
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET is required and must be at least 32 characters (openssl rand -base64 32)"),
   APP_URL: z.url("APP_URL is required, e.g. https://tspi-workbook.vercel.app"),
   ALLOWED_EMAIL_DOMAINS: z
@@ -42,7 +45,7 @@ const baseSchema = z.object({
 
 export type Env = z.infer<typeof baseSchema>;
 
-const vercelRequired = ["DIRECT_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_FROM", "CRON_SECRET"] as const;
+const vercelRequired = ["SMTP_HOST", "SMTP_PORT", "SMTP_FROM", "CRON_SECRET"] as const;
 
 let cached: Env | undefined;
 
@@ -57,6 +60,15 @@ export function getEnv(): Env {
   } else if (onVercel) {
     for (const key of vercelRequired) {
       if (parsed.data[key] === undefined) problems.push(`${key}: required on Vercel deployments`);
+    }
+    if (parsed.data.DIRECT_URL === undefined && parsed.data.DATABASE_URL_UNPOOLED === undefined) {
+      problems.push("DIRECT_URL (or DATABASE_URL_UNPOOLED): the direct Neon connection is required on Vercel deployments");
+    }
+  }
+  if (parsed.success) {
+    for (const key of ["DATABASE_URL", "DIRECT_URL", "DATABASE_URL_UNPOOLED"] as const) {
+      const problem = connectionStringProblem(key, parsed.data[key]);
+      if (problem) problems.push(problem);
     }
   }
   if (problems.length > 0 || !parsed.success) {

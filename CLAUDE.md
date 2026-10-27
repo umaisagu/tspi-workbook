@@ -37,8 +37,13 @@ Never run `migrate dev` or the seed against production. The seed refuses non-loc
   use the generated `PageProps<"/route">`, `LayoutProps`, `RouteContext<"/api/...">` types.
   Next 16 docs are in `node_modules/next/dist/docs/` — read them before using unfamiliar APIs.
 - React 19, Tailwind CSS 4, TypeScript strict (+ `noUncheckedIndexedAccess`), ESLint bans `any`.
-- Prisma 7: generator `prisma-client` → `generated/prisma` (git-ignored). `prisma.config.ts` gives the CLI
-  `DIRECT_URL`; the app uses `DATABASE_URL` (pooled) through `@prisma/adapter-pg` in `lib/db.ts`.
+- Prisma 7: generator `prisma-client` → `generated/prisma` (git-ignored). `prisma.config.ts` gives the CLI the direct
+  connection (`DIRECT_URL`, or Neon's `DATABASE_URL_UNPOOLED`: `directDatabaseUrl()` in `lib/deploy/db-urls.ts`); the app
+  uses `DATABASE_URL` (pooled) through a node-postgres `Pool` + `@prisma/adapter-pg` in `lib/db.ts`, registered with
+  `attachDatabasePool` from `@vercel/functions` (Neon's guidance for Vercel Fluid compute; no-op elsewhere).
+  CLI tools load `.env.local` then `.env` (`scripts/load-env.ts`), like Next.js; shell variables win.
+- Neon CLI: `neon.ts` + `.neon` (git-ignored link to the org/project/branch) from `neon init`; `neon env pull`
+  writes `.env.local`. This sandbox's network policy blocks `*.neon.tech`/`neon.com` unless allowed.
 - Auth.js v5 (`next-auth@beta`), Credentials provider, JWT sessions. Every request re-loads the user
   (`lib/server/viewer.ts`): deactivated users and sessions older than the user's `sessionVersion`
   (bumped on password reset / role change) are rejected.
