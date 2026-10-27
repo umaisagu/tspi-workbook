@@ -13,7 +13,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   cacheComponents: false,
   poweredByHeader: false,
-  serverExternalPackages: ["pg", "@prisma/adapter-pg"],
+  serverExternalPackages: ["pg", "@prisma/adapter-pg", "pdfkit", "exceljs"],
+  // pdfkit reads its standard-font metrics (.afm) from disk at runtime; make sure they are deployed.
+  outputFileTracingIncludes: { "/api/export/**": ["./node_modules/pdfkit/js/data/**"] },
   turbopack: {
     rules: {
       "*.css": {

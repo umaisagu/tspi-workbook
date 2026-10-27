@@ -14,6 +14,8 @@ import {
   canEditOwnTeamRow,
   canAddTeamRow,
   canDecideChange,
+  canExport,
+  canExportPrivate,
   canViewMonitoring,
   canViewTeam,
   type Viewer,
@@ -170,5 +172,18 @@ describe("member-owned team rows (LOGTEST, CCR)", () => {
     expect(canDecideChange(leaderA, teamA)).toBe(true);
     expect(canDecideChange(memberA, teamA)).toBe(false);
     expect(canDecideChange(lecturer, teamA)).toBe(false);
+  });
+});
+
+describe("exports", () => {
+  it("staff export their teams; PEER and contribution reports are lecturer only", () => {
+    expect(canExport(lecturer, teamB)).toBe(true);
+    expect(canExport(demoG1, teamA)).toBe(true);
+    expect(canExport(demoG1, teamB)).toBe(false);
+    expect(canExport(leaderA, teamA)).toBe(false);
+    expect(canExport(memberA, teamA)).toBe(false);
+    expect(canExportPrivate(lecturer)).toBe(true);
+    expect(canExportPrivate(demoG1)).toBe(false);
+    expect(canExportPrivate(leaderA)).toBe(false);
   });
 });

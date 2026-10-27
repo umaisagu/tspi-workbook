@@ -109,7 +109,7 @@ export function OverviewTable({ rows }: { rows: OverviewRow[] }) {
           </Select>
         </label>
       </div>
-      <div className="-mx-4 overflow-x-auto sm:mx-0">
+      <div className="relative -mx-4 overflow-x-auto sm:mx-0">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-slate-600">

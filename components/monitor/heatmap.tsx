@@ -16,7 +16,7 @@ export function Heatmap({ m }: { m: TeamMonitoring }) {
   const breaks = m.planning.semester.breakWeeks;
   return (
     <div className="space-y-2">
-      <div className="-mx-4 overflow-x-auto sm:mx-0">
+      <div className="relative -mx-4 overflow-x-auto sm:mx-0">
         <table className="text-xs">
           <thead>
             <tr>
@@ -77,7 +77,7 @@ export function WeeklyCompletion({ m }: { m: TeamMonitoring }) {
   const WEEK_MARK: Record<string, string> = { submitted: "✓", late: "L", missing: "✗", open: "…" };
   return (
     <div className="space-y-2">
-      <div className="-mx-4 overflow-x-auto sm:mx-0">
+      <div className="relative -mx-4 overflow-x-auto sm:mx-0">
         <table className="text-xs">
           <thead>
             <tr>

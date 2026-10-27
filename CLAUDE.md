@@ -22,7 +22,7 @@ If a doc conflicts with a request, ask before choosing.
 | Unit tests | `npm test` (Vitest; `lib/**/*.test.ts`, `components/**/*.test.ts`; config `vitest.config.mts`) |
 | New migration (dev only) | `npm run db:migrate -- --name <name>` |
 | Apply migrations | `npm run db:deploy` |
-| Seed (dev only, wipes DB) | `npm run db:seed` — all seeded accounts use password `tspi-dev-2026`; log data is generated up to "today" (prisma/seed-logs.ts) |
+| Seed (dev only, wipes DB) | `npm run db:seed` — all seeded accounts use password `tspi-dev-2026`; log data is generated up to "today" (prisma/seed-logs.ts); GitHub activity is cached seed data for fictional repos (seed-github.ts) |
 | Production build | `npm run build` = `prisma generate && prisma migrate deploy && next build` |
 | First lecturer (production, once) | `npm run create-lecturer` |
 
@@ -62,7 +62,13 @@ lib/server/forms/       access.ts (individualFormAccess / requireTeamForm), refs
 lib/tsp/                pure TSPi formulas + tests (calendar, phases, roles, milestones, time, defects, ai-log, student-info,
                         earned-value (TASK/SCHEDULE/EV/predictions), sumtask, sizes (SUMS), quality (SUMP/SUMQ),
                         week (WEEK), peer (PEER), test-log, completion (milestone form status), contribution)
-lib/monitoring/         pure contribution-flag logic + tests (Stage 6)
+lib/monitoring/         pure contribution-flag logic + tests: settings.ts (thresholds), flags.ts, status.ts (team badge)
+lib/github/             parse.ts (pure, tested: repo URL, pagination, payload schemas, counts), client.ts (REST fetch)
+lib/export/             document.ts (pure, tested: title + sections of columns/rows), xlsx.ts (exceljs), pdf.ts (pdfkit)
+lib/server/monitoring.ts   loadTeamMonitoring / loadClassOverview (flags + review status, contribution, heatmap)
+lib/server/export/      sections.ts (per-form tables), contribution.ts (member report), access.ts, respond.ts
+lib/server/github-sync.ts  syncTeam / syncBatch (cached in GitHubActivity, status in GitHubSync)
+components/monitor      overview table, contribution table, heatmap + weekly completion, flag list, notes, exports, settings
 lib/auth/               Auth.js config, permissions.ts (pure, tested), email/rate-limit helpers
 lib/schemas/            Zod schemas (shared)
 lib/server/             server-only data access, guards, audit helpers
@@ -171,6 +177,38 @@ docs/                   course reference material (do not edit) + workbook-formu
   share; no flags), `/t/[teamId]` (team: EV/hours charts, defects by phase, completion for the current milestone).
   `/team` and `/milestones` redirect a student to their team. Contribution measures in `lib/tsp/contribution.ts`.
 
+## Stage 6 rules: monitoring, flags, GitHub, exports
+
+- Pages: `/monitor` (class overview: one row per team, sort/filter by lab group, status, milestone; class-wide
+  "Needs attention" = open flags), `/monitor/teams/[teamId]` (tiles, EV/hours charts, contribution table, flags,
+  hours heatmap, weekly completion, milestone completion, GitHub, exports, notes), `/monitor/settings` (lecturer).
+  Lecturer sees all teams of the active semester; a demonstrator only their groups' teams, without PEER data,
+  PEER_MISMATCH flags or notes. Students get 404/redirect and never see flags anywhere.
+- Team status: Behind if SPI (cum EV / cum PV) < `behindSpi` or no activity for > 2 × `inactiveDays`; At risk if
+  SPI < `atRiskSpi`, no activity for > `inactiveDays`, a required form missing for a past milestone, or ≥ 2 open flags.
+- Flags (`lib/monitoring/flags.ts`, thresholds in `MonitoringSettings.thresholds` per semester, defaults in settings.ts):
+  LOW_SHARE (hours or EV < fraction × fair share over the last `windowWeeks` or the milestone period; key = milestone),
+  INACTIVE (no LOGT for `weeks` consecutive working weeks, current week included; key `W{a}-W{b}`),
+  HOURS_NO_OUTPUT (≥ `minHours` in the window but no completed task, test case or commit), BACKFILL (≥ `minEntries`
+  log entries typed ≥ `lagDays` after their date within `sessionGapMinutes` of each other, ending ≤ `daysBeforeDeadline`
+  before a milestone; key = milestone), PEER_MISMATCH (self − peers' average ≥ `selfAbovePeers`, or peers' average
+  ≤ `lowPeerAverage`; lecturer only), MISSING_FORMS (WEEK late/missing on the leader `WEEK-W{n}`, PEER `PEER-{code}`).
+  Every flag carries its evidence lines. Flags are prompts for review, never grades.
+- Flag review (`FlagReview`, lecturer): Reviewed / Dismissed (reason required) / Reopened; every action is kept
+  with the evidence at that moment; a flag's status is its latest review. Lecturer notes (`LecturerNote`) on a team
+  or a member: lecturer only.
+- GitHub: `Team.repoUrl` + FORM-SI GitHub usernames (case-insensitive). Commits since Week 1, PRs, reviews via REST with
+  `GITHUB_TOKEN`; cached in `GitHubActivity` (unique `externalId`, so re-syncs add only new rows); errors stored in
+  `GitHubSync.lastError` and the cache is kept. Refresh: lecturer button (one team / next batch) or the daily cron
+  `GET /api/cron/github` (`Authorization: Bearer CRON_SECRET`). Without `GITHUB_TOKEN` the GitHub columns are hidden.
+  In this sandbox Node's fetch only reaches GitHub with credentials when started with `NODE_USE_ENV_PROXY=1
+  NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` (not needed on Vercel).
+- Exports (Excel and PDF, same document model): `/api/export/form?team=&form=&format=xlsx|pdf` and
+  `/api/export/team?team=&format=` for staff who can view the team (PEER only for the lecturer);
+  `/api/export/contribution?member=&milestone=&format=` (lecturer only: shares within the milestone period, GitHub,
+  hours by week, PEER received vs self, forms, flags + review history, notes). PDFs use Helvetica, so text goes
+  through `pdfSafe`; `pdfkit`'s font files are traced via `outputFileTracingIncludes` in next.config.ts.
+
 ## Decisions (defaults chosen at plan approval; change here if the lecturer decides otherwise)
 
 1. SUMS plan/actual sizes (Base, Deleted, Modified, Added, Reused), SUMQ plan injection rates and plan
@@ -203,4 +241,4 @@ docs/                   course reference material (do not edit) + workbook-formu
 
 1. ✅ Setup, schema, auth and roles  2. ✅ FORM-SI, LOGT, LOGD, LOGAI  3. ✅ TASK, SCHEDULE, EV, SUMTASK
 4. ✅ SUMS, SUMP, SUMQ  5. ✅ LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
-6. Monitoring, flags, GitHub, exports  7. Production hardening, Vercel/Neon, cron, backups, DEPLOY.md
+6. ✅ Monitoring, flags, GitHub, exports  7. Production hardening, Vercel/Neon, cron, backups, DEPLOY.md

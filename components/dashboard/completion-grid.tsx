@@ -21,7 +21,7 @@ export function CompletionGrid({
   return (
     <div className="space-y-4">
       {forms.length > 0 && (
-        <div className="-mx-4 overflow-x-auto sm:mx-0">
+        <div className="relative -mx-4 overflow-x-auto sm:mx-0">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-slate-600">

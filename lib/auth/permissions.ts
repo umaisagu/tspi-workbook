@@ -159,3 +159,8 @@ export function canReadLecturerNotes(v: Viewer): boolean {
 export function canExport(v: Viewer, team: TeamRef): boolean {
   return isLecturer(v) || demonstratesGroup(v, team.labGroupId);
 }
+
+/** Exports that contain PEER ratings or lecturer notes (PEER form, per-member contribution reports). */
+export function canExportPrivate(v: Viewer): boolean {
+  return isLecturer(v);
+}

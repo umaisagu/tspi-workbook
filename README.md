@@ -13,7 +13,7 @@ Stack: Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQL + Pr
 - [x] Stage 3 — TASK, SCHEDULE, earned value, SUMTASK
 - [x] Stage 4 — SUMS, SUMP, SUMQ
 - [x] Stage 5 — LOGTEST, WEEK, PEER, CCR, dashboards, milestone view
-- [ ] Stage 6 — lecturer monitoring, contribution flags, GitHub, exports
+- [x] Stage 6 — lecturer monitoring, contribution flags, GitHub, exports
 - [ ] Stage 7 — production hardening and deployment (DEPLOY.md)
 
 ## Local setup
@@ -62,6 +62,20 @@ Without SMTP settings, password-reset links are printed in the dev server's log.
 | `npm run db:seed` | Load development sample data (refuses production / remote hosts) |
 | `npm run build` | `prisma generate && prisma migrate deploy && next build` (used by Vercel) |
 | `npm run create-lecturer` | One-time: create the first Lecturer account (prompts for details) |
+
+## Lecturer monitoring
+
+- **/monitor**: class overview: one row per team with status (On track / At risk / Behind), EV vs PV, hours,
+  milestone form completion and days since last activity. Below it, a "Needs attention" list of open flags.
+- **/monitor/teams/&lt;team&gt;**: charts, contribution shares per member, flags with evidence (review, dismiss with
+  a reason, reopen; history kept), a weekly hours heatmap, weekly form completion, GitHub activity, Excel/PDF
+  exports and private notes.
+- **/monitor/settings**: every flag and status threshold for the active semester.
+- **GitHub**: set each team's repository URL on the team page; students enter their GitHub username in FORM-SI.
+  With `GITHUB_TOKEN` set, activity is refreshed daily by `/api/cron/github` (send `Authorization: Bearer $CRON_SECRET`)
+  or on demand from the monitoring pages. Without a token the GitHub columns are hidden.
+
+Flags are prompts for review, not grades. Students never see flags, lecturer notes or other members' PEER ratings.
 
 ## Project layout
 

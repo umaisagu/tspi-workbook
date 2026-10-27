@@ -12,6 +12,7 @@ import type { TspiRole } from "../generated/prisma/enums";
 import { seedLogs, type Profile, type SeedMember } from "./seed-logs";
 import { seedPlan } from "./seed-plan";
 import { seedTeamForms } from "./seed-team-forms";
+import { seedGithub } from "./seed-github";
 import type { SeedComponent } from "./seed-logs";
 import { localDate, weekOf } from "../lib/tsp/calendar";
 
@@ -255,6 +256,15 @@ async function main() {
         lateWeekReports: t.name === "Rafflesia",
         seed: 5000 + seedNo,
       });
+      await seedGithub(db, {
+        teamId: team.id,
+        repo: t.repoUrl.replace("https://github.com/", ""),
+        members,
+        week1: week1Monday,
+        currentWeek,
+        breakWeeks: semester.breakWeeks,
+        seed: 7000 + seedNo,
+      });
       const demonstrator = demonstrators[t.group - 1]!;
       const quiet = members.find((m) => m.profile === "inactive");
       if (quiet) {
@@ -281,6 +291,7 @@ async function main() {
     console.info(`  Unusual on purpose: 84005 Elvis (inactive last 2 weeks, no PEER), 84012 Haziq (backfilled LOGT before ${latestDeadline.toISOString()}, late PEER),`);
     console.info(`                     84006 Farhan (low hours, rates himself far above teammates' ratings), 84015 Kamilah (FORM-SI not submitted),`);
     console.info(`                     Kenyalang submits WEEK reports on time; Rafflesia's week 5 report is a draft (late once its deadline passes)`);
+    console.info(`  GitHub activity is cached seed data (repos are fictional); the team detail page shows it when GITHUB_TOKEN is set`);
     console.info(`  Password for every seeded account: ${DEV_PASSWORD}`);
   } finally {
     await db.$disconnect();
