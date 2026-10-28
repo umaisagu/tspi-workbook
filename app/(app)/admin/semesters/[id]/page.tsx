@@ -32,7 +32,22 @@ export default async function SemesterPage({ params }: PageProps<"/admin/semeste
 
   return (
     <div className="space-y-5">
-      <PageHeader title={semester.name} subtitle={<Link href="/admin" className="text-blue-700 hover:underline">← All semesters</Link>} />
+      <PageHeader
+        title={semester.name}
+        subtitle={<Link href="/admin" className="text-blue-700 hover:underline">← All semesters</Link>}
+        actions={
+          semester.labGroups.length === 0 ? (
+            <ActionButton
+              url={`/api/semesters/${semester.id}`}
+              method="DELETE"
+              label="Delete semester"
+              variant="danger"
+              redirectTo="/admin"
+              confirmText={`Delete semester "${semester.name}" and its milestones? This cannot be undone.`}
+            />
+          ) : undefined
+        }
+      />
       <Card title="Semester settings">
         <SemesterSettings
           semester={{

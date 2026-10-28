@@ -12,6 +12,7 @@ export function ActionButton({
   label,
   confirmText,
   variant = "secondary",
+  redirectTo,
 }: {
   url: string;
   method: string;
@@ -19,6 +20,8 @@ export function ActionButton({
   label: string;
   confirmText?: string;
   variant?: "primary" | "secondary" | "danger";
+  /** Navigate here after success (e.g. when the page's own record was deleted); otherwise refresh. */
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -36,6 +39,7 @@ export function ActionButton({
           const r = await sendJson(url, method, body);
           setPending(false);
           if (!r.ok) setError(r.error);
+          else if (redirectTo) router.push(redirectTo);
           else router.refresh();
         }}
       >
