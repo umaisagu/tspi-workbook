@@ -11,6 +11,7 @@ import {
   canReadPeer,
   canReadComments,
   canEditScheduleRow,
+  canCompleteTask,
   canEditOwnTeamRow,
   canAddTeamRow,
   canDecideChange,
@@ -167,6 +168,16 @@ describe("member-owned team rows (LOGTEST, CCR)", () => {
     expect(canEditOwnTeamRow(memberA, teamA, "mA1")).toBe(false);
     expect(canEditOwnTeamRow(leaderA, teamA, "mA2")).toBe(true);
     expect(canEditOwnTeamRow(demoG1, teamA, "mA2")).toBe(false);
+  });
+  it("the assignee completes their own task, the leader any; nobody completes an unassigned task but the leader", () => {
+    expect(canCompleteTask(memberA, teamA, "mA2")).toBe(true);
+    expect(canCompleteTask(memberA, teamA, "mA1")).toBe(false);
+    expect(canCompleteTask(memberA, teamA, null)).toBe(false);
+    expect(canCompleteTask(leaderA, teamA, "mA2")).toBe(true);
+    expect(canCompleteTask(leaderA, teamA, null)).toBe(true);
+    expect(canCompleteTask(formerMemberA, teamA, "mA2")).toBe(false);
+    expect(canCompleteTask(lecturer, teamA, "mA2")).toBe(false);
+    expect(canCompleteTask(demoG1, teamA, "mA2")).toBe(false);
   });
   it("only the team leader decides change requests", () => {
     expect(canDecideChange(leaderA, teamA)).toBe(true);

@@ -107,7 +107,8 @@ docs/                   course reference material (do not edit) + workbook-formu
   and TSPi roles, edits team-level forms (TASK, SCHEDULE plan, LOGTEST, WEEK, CCR, SUMS sizes, SUMQ plan).
 - **Team Member**: edits only own individual forms (FORM-SI, LOGT, LOGD, LOGAI, PEER); reads team-level forms.
   Exception for member-owned team rows (`canEditOwnTeamRow`): own SCHEDULE row, own LOGTEST cases, own CCRs while
-  SUBMITTED. The Team Leader edits any of these and decides CCRs (`canDecideChange`).
+  SUBMITTED, and marking their own TASK done (`canCompleteTask`, `POST …/tasks/[taskId]/complete`: completion date only).
+  The Team Leader edits any of these and decides CCRs (`canDecideChange`).
   Individual forms are readable by the owner, the lecturer and the group's demonstrator.
 - **PEER** is visible only to its author and the lecturer. Students never see flags, lecturer notes,
   or others' PEER ratings.
@@ -245,7 +246,8 @@ docs/                   course reference material (do not edit) + workbook-formu
 2. LOGT has an optional Task link (TASK actual hours = Σ LOGT delta for the task). LOGT and LOGD have a
    Component (= workbook Assembly).
 3. TASK: one assigned member, plan hours, optional size/measure/rate; plan value is computed
-   (plan hours / total plan hours).
+   (plan hours / total plan hours). The assigned member marks their own task done (lecturer's decision);
+   everything else on TASK is the Team Leader's.
 4. SCHEDULE plan hours are entered per member per week (each member their own row, Team Leader any row);
    the team plan is their sum.
 5. WEEK reports from Week 5 (the prompt's choice; the brief says "after the first milestone"), due before

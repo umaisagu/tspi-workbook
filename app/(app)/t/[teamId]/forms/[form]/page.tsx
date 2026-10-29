@@ -261,6 +261,7 @@ async function TeamFormPage({
         rows={planning.tasks}
         canEdit={canEdit}
         currentWeek={planning.currentWeek}
+        ownMembershipId={activeMembershipIn(user, team.id)?.membershipId}
         hiddenPhases={planning.semester.hiddenPhases}
         components={components.map((c) => ({ value: c.id, label: c.name }))}
         members={teammates.map((t) => ({ value: t.membershipId, label: t.name }))}

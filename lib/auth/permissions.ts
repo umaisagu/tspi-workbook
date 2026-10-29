@@ -93,6 +93,12 @@ export function canEditOwnTeamRow(v: Viewer, team: TeamRef, ownerMembershipId: s
 /** SCHEDULE: each member edits their own plan-hours row, the Team Leader edits any row. */
 export const canEditScheduleRow = canEditOwnTeamRow;
 
+/** TASK completion: the assigned member marks their own task done (or not yet), the Team Leader any task. */
+export function canCompleteTask(v: Viewer, team: TeamRef, assigneeMembershipId: string | null): boolean {
+  if (isTeamLeaderOf(v, team.id)) return true;
+  return assigneeMembershipId !== null && activeMembershipIn(v, team.id)?.membershipId === assigneeMembershipId;
+}
+
 /** Any current member may add their own LOGTEST cases and change requests. */
 export function canAddTeamRow(v: Viewer, team: TeamRef): boolean {
   return activeMembershipIn(v, team.id) !== undefined;
