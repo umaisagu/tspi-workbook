@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { taskSchema } from "@/lib/schemas/forms";
 import { created } from "@/lib/server/audit";
-import { requireTeamForm } from "@/lib/server/forms/access";
+import { requireTaskPlan, requireTeamForm } from "@/lib/server/forms/access";
 import { loadPlanning } from "@/lib/server/forms/planning";
 import { assertComponent, assertTeammate, logDate } from "@/lib/server/forms/refs";
 import { ok, parseJson, route } from "@/lib/server/http";
@@ -13,10 +13,10 @@ export const GET = route(async (_req, { params }: RouteContext<"/api/teams/[id]/
   return ok({ tasks: p.tasks, totalPlanHours: p.schedule.totalTaskPlanHours, unscheduledTaskIds: p.schedule.unscheduledTaskIds });
 });
 
-/** Adds a task at the end of the plan (or at the given order). Team Leader only. */
+/** Adds a task at the end of the plan (or at the given order). Team Leader or Planning Manager. */
 export const POST = route(async (req, { params }: RouteContext<"/api/teams/[id]/tasks">) => {
   const { id } = await params;
-  const { user } = await requireTeamForm(id, "write");
+  const { user } = await requireTaskPlan(id);
   const input = await parseJson(req, taskSchema);
   await assertComponent(id, input.componentId);
   await assertTeammate(id, input.assigneeMembershipId, "", "assigneeMembershipId");

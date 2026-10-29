@@ -105,6 +105,7 @@ docs/                   course reference material (do not edit) + workbook-formu
   those groups only. Cannot see PEER or lecturer notes.
 - **Team Leader** = member holding TSPi role `TEAM_LEADER` in that team (not an app role): manages roster
   and TSPi roles, edits team-level forms (TASK, SCHEDULE plan, LOGTEST, WEEK, CCR, SUMS sizes, SUMQ plan).
+- **Planning Manager** (TSPi role `PLANNING_MANAGER`) also edits the TASK plan (`canEditTaskPlan`, `requireTaskPlan`).
 - **Team Member**: edits only own individual forms (FORM-SI, LOGT, LOGD, LOGAI, PEER); reads team-level forms.
   Exception for member-owned team rows (`canEditOwnTeamRow`): own SCHEDULE row, own LOGTEST cases, own CCRs while
   SUBMITTED, and marking their own TASK done (`canCompleteTask`, `POST …/tasks/[taskId]/complete`: completion date only).
@@ -138,7 +139,7 @@ docs/                   course reference material (do not edit) + workbook-formu
 
 ## Planning rules (Stage 3)
 
-- TASK (Team Leader edits; team reads): plan hours entered, or left empty to use size ÷ rate. PV = plan hours /
+- TASK (Team Leader and Planning Manager edit; team reads): plan hours entered, or left empty to use size ÷ rate. PV = plan hours /
   total plan hours; plan week = first week whose cumulative SCHEDULE hours cover the task's cumulative plan hours
   (tasks in `order`); EV = PV credited in the completion week (`completedOn`, no future dates). Actual hours =
   Σ LOGT delta linked to the task. Deleted tasks drop out of the plan.
@@ -246,8 +247,8 @@ docs/                   course reference material (do not edit) + workbook-formu
 2. LOGT has an optional Task link (TASK actual hours = Σ LOGT delta for the task). LOGT and LOGD have a
    Component (= workbook Assembly).
 3. TASK: one assigned member, plan hours, optional size/measure/rate; plan value is computed
-   (plan hours / total plan hours). The assigned member marks their own task done (lecturer's decision);
-   everything else on TASK is the Team Leader's.
+   (plan hours / total plan hours). Lecturer's decisions: the Team Leader and the Planning Manager edit TASK;
+   the assigned member marks their own task done.
 4. SCHEDULE plan hours are entered per member per week (each member their own row, Team Leader any row);
    the team plan is their sum.
 5. WEEK reports from Week 5 (the prompt's choice; the brief says "after the first milestone"), due before

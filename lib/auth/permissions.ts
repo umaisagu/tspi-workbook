@@ -93,9 +93,15 @@ export function canEditOwnTeamRow(v: Viewer, team: TeamRef, ownerMembershipId: s
 /** SCHEDULE: each member edits their own plan-hours row, the Team Leader edits any row. */
 export const canEditScheduleRow = canEditOwnTeamRow;
 
-/** TASK completion: the assigned member marks their own task done (or not yet), the Team Leader any task. */
+/** TASK plan (add, edit, delete tasks): the Team Leader and the Planning Manager (lecturer's decision). */
+export function canEditTaskPlan(v: Viewer, team: TeamRef): boolean {
+  const roles = activeMembershipIn(v, team.id)?.roles ?? [];
+  return roles.includes("TEAM_LEADER") || roles.includes("PLANNING_MANAGER");
+}
+
+/** TASK completion: the assigned member marks their own task done (or not yet); whoever edits the plan, any task. */
 export function canCompleteTask(v: Viewer, team: TeamRef, assigneeMembershipId: string | null): boolean {
-  if (isTeamLeaderOf(v, team.id)) return true;
+  if (canEditTaskPlan(v, team)) return true;
   return assigneeMembershipId !== null && activeMembershipIn(v, team.id)?.membershipId === assigneeMembershipId;
 }
 
