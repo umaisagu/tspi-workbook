@@ -2,7 +2,7 @@
 
 Web replacement for the TSPi Excel workbook for TMA3084 Software Engineering Lab (UNIMAS).
 Student teams (5–6) fill in TSPi forms; the lecturer monitors progress and individual contribution.
-Source of truth: the lecturer's **TSPi Workbook v3.0** (`docs/workbook-v3/`, blank + worked SAMPLE), which replaces the
+Source of truth: the lecturer's **TSPi Workbook v3.0** (`docs/workbook-v3/`: team master, member workbook, worked SAMPLE), which replaces the
 2002 workbook (`docs/TSPI_WORKBOOK20020301.xls`, formulas in `docs/workbook-formulas.md`). Where v3.0 and the app differ,
 v3.0 wins (lecturer's decision); the app is being aligned in stages (see Stages). If a doc conflicts with a request, ask.
 
@@ -26,7 +26,7 @@ v3.0 wins (lecturer's decision); the app is being aligned in stages (see Stages)
 | Seed (dev only, wipes DB) | `npm run db:seed` — all seeded accounts use password `tspi-dev-2026`; log data is generated up to "today" (prisma/seed-logs.ts); GitHub activity is cached seed data for fictional repos (seed-github.ts) |
 | Production build | `npm run build` = `prisma generate`, deploy-target check, `prisma migrate deploy`, mark, `next build` |
 | First lecturer (production, once) | `npm run create-lecturer` |
-| Refresh Reference data | `python3 scripts/extract-reference.py docs/workbook-v3/<blank>.xlsx docs/workbook-v3/<SAMPLE>.xlsx` → `lib/reference/workbook-v3.json` |
+| Refresh Reference data | `python3 scripts/extract-reference.py docs/workbook-v3/<master>.xlsx docs/workbook-v3/<member>.xlsx docs/workbook-v3/<SAMPLE>.xlsx` → `lib/reference/workbook-v3.json` |
 | Backup (off-site copy) | `npm run backup` (pg_dump of `BACKUP_DATABASE_URL`/`DIRECT_URL` to `./backups`, git-ignored) |
 
 Never run `migrate dev` or the seed against production. The seed refuses non-local hosts unless
@@ -88,7 +88,7 @@ lib/server/maintenance.ts  cleanup for the daily cron (old rate-limit rows, rese
 scripts/                create-lecturer.ts, deploy-target.ts (build guard), backup.ts, extract-workbook.py, db-client.ts
 docs/                   course reference material (do not edit) + workbook-formulas.md; workbook-v3/ = lecturer's v3.0 workbooks
 lib/reference/          workbook-v3.json (extracted manual, standards, guidelines, SAMPLE rows) + workbook.ts (types, download list)
-app/(app)/reference     Reference page for every signed-in user; downloads via /api/reference/[workbook|sample] (signed in)
+app/(app)/reference     Reference page for every signed-in user; downloads via /api/reference/[workbook|member|sample] (signed in)
 ```
 
 - All formulas live in pure functions in `/lib/tsp`, all flag logic in `/lib/monitoring`, each with tests.
@@ -275,9 +275,11 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 15. Workbook v3.0 (2026-10-29) replaces the 2002 workbook; v3.0 wins where they differ. Staged alignment:
     1 ✅ Reference page + downloads, six roles, defect types 110–150; 2 existing-form fields, calendar (v3.0 has no
     break week; dues 25 Oct, 20 Nov, 20 Dec 2026, 2 Jan 2027), roles per milestone; 3 27 phases (AIGEN, BUILD←COMPILE,
-    WT, CICD, UAT←AT) with SUMP/SUMQ rebuilt to v3.0; 4 new forms (SETUP thresholds, GOALS, STRAT, LOGCLIENT, IRTL,
+    WT, CICD, UAT←AT) with SUMP/SUMQ rebuilt to v3.0 and personal MYSUMP/MYSUMQ; 4 new forms (SETUP thresholds, GOALS, STRAT, LOGCLIENT, IRTL,
     TEAMEVAL, ASSESS, Team Charter). FORM-SI keeps sections A–K; the Team Charter becomes a team form (lecturer's choice).
     The SAMPLE is shown on the Reference page and downloadable; it is not loaded into the database.
+    The member workbook (one per student, consolidated weekly into the master's TEAM sheet by copy and paste) maps onto
+    the app's own forms: members already record only their own rows and team totals are computed, so no EXPORT step.
 14. Git: work is pushed to the session's designated branch (`claude/modest-cori-685ap0`) until told to use `main`.
 
 ## Stages

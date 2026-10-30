@@ -1,6 +1,7 @@
 {
  "source": [
   "TSPi_Workbook_TMA3084_v3.0.xlsx",
+  "TSPi_Member_Workbook_TMA3084_v3.0.xlsx",
   "TSPi_Workbook_TMA3084_SAMPLE_v3.0.xlsx"
  ],
  "title": "TSPi Team Workbook  -  TMA3084 Software Engineering Laboratory",
@@ -1290,6 +1291,124 @@
    }
   ],
   "fixOrder": "If several measures are red, fix them in this order: review rate first, because it is the cheapest change and it moves everything downstream; then design review time, because design defects are the costly ones; then coverage. Do not start by adding testers - testing finds defects later and more expensively than reviewing does, and a team that responds to poor quality by testing harder is paying the highest price available for the same information."
+ },
+ "member": {
+  "title": "My TSPi Workbook  -  TMA3084 Software Engineering Laboratory",
+  "about": [
+   {
+    "label": "What this is",
+    "text": "Your own copy of the TSPi workbook. You record your work here - your time, your defects, your tests, your AI-assisted changes - and nobody else types in this file."
+   },
+   {
+    "label": "How it fits together",
+    "text": "Your team also keeps one master workbook. Once a week, at the team meeting, you open the EXPORT sheet here and paste its numbers into your row on the master's TEAM sheet, then paste your log rows into the master's shared logs. That is the whole handover."
+   },
+   {
+    "label": "Fill in SETUP first",
+    "text": "Your name and matric number on SETUP are what the EXPORT sheet stamps onto your numbers, so the team can tell whose row is whose."
+   },
+   {
+    "label": "Colour convention",
+    "text": "AMBER cells are yours to fill in. GREY cells are calculated - typing over one breaks the summary that depends on it."
+   },
+   {
+    "label": "The honest bit",
+    "text": "This file is the evidence behind your individual mark. Logging work you did not do is academic dishonesty, and because the master cross-checks your reported hours against the rows you paste in, a workbook that disagrees with itself is visible immediately."
+   }
+  ],
+  "routine": [
+   "Every working session:  start a LOGT row when you sit down, close it when you get up.",
+   "Every defect you fix:   a LOGD row, with the phase the mistake was made in.",
+   "Every test you run:     a LOGTEST row.",
+   "Every AI-assisted change: a LOGAI row, with a teammate named as reviewer.",
+   "Every week at the meeting: open EXPORT, paste into the master, done."
+  ],
+  "sheets": [
+   {
+    "sheet": "README",
+    "title": "My TSPi Workbook  -  TMA3084 Software Engineering Laboratory",
+    "purpose": "Faculty of Computer Science & Information Technology, UNIMAS   |   Semester 1, Session 2026/2027   |   Member workbook v3.0"
+   },
+   {
+    "sheet": "SETUP",
+    "title": "My Details",
+    "purpose": "Fill this once. Everything else in this workbook reads from here."
+   },
+   {
+    "sheet": "MYTASK",
+    "title": "My Task Plan",
+    "purpose": "Only the tasks you own. Actual hours arrive from LOGT by themselves."
+   },
+   {
+    "sheet": "MYSCHEDULE",
+    "title": "My Weekly Schedule",
+    "purpose": "What you planned to put in each week, against what you actually did."
+   },
+   {
+    "sheet": "LOGT",
+    "title": "Form LOGT  -  My Time Recording Log",
+    "purpose": "One row per working session. Delta is calculated; never type over it."
+   },
+   {
+    "sheet": "LOGD",
+    "title": "Form LOGD  -  My Defect Recording Log",
+    "purpose": "Every defect you found and fixed. Injected in is the phase the mistake was MADE."
+   },
+   {
+    "sheet": "LOGTEST",
+    "title": "Form LOGTEST  -  My Test Case Log",
+    "purpose": "Automated tests get a row too."
+   },
+   {
+    "sheet": "LOGAI",
+    "title": "Form LOGAI  -  My AI-Assisted Development Log",
+    "purpose": "Every change where a generator wrote code that reached the repository. The reviewer must not be you."
+   },
+   {
+    "sheet": "MYSUMP",
+    "title": "My Plan Summary",
+    "purpose": "Plan column is yours; actual reads itself out of your logs."
+   },
+   {
+    "sheet": "MYSUMQ",
+    "title": "My Quality Summary",
+    "purpose": "Your own review discipline. These are the numbers the Quality & Test Manager will ask you about."
+   },
+   {
+    "sheet": "EXPORT",
+    "title": "EXPORT  -  what to give the team each week",
+    "purpose": "Copy the amber row, Paste Special > Values into your row on the master's TEAM sheet, columns F to K."
+   },
+   {
+    "sheet": "PHASES",
+    "title": "Process Phase Standard",
+    "purpose": "The phase codes you may use in LOGT, LOGD and MYTASK."
+   },
+   {
+    "sheet": "DEFECTTYPES",
+    "title": "Defect Type Standard",
+    "purpose": "The types you may choose in LOGD."
+   },
+   {
+    "sheet": "LISTS",
+    "title": "Validation Lists",
+    "purpose": "Source lists for the drop-downs in this workbook."
+   }
+  ],
+  "consolidation": [
+   {
+    "label": "Consolidate Plans",
+    "text": "Do this at the weekly meeting, with all five workbooks open.   1.  Each member opens their own workbook and goes to its EXPORT sheet - the numbers there are already calculated.   2.  Copy the row of six values and Paste Special > Values into columns F to K of your row above.   3.  Paste your log rows into the shared logs here (LOGT, LOGD, LOGTEST, LOGAI) so the team summaries and charts include your work.   4.  Check the Agrees? column. Green means the two sides match; anything else means somebody's work is recorded in one place and not the other, and the team plan is wrong until it is fixed."
+   },
+   {
+    "label": "Make copies of the workbook for the team",
+    "text": "Do this once, at the launch.   1.  Fill SETUP and FORM-SI in this master first - the filenames in column E above are built from the team name and each matric number.   2.  Take the blank member workbook (TSPi_Member_Workbook_TMA3084_v3.0.xlsx), save one copy per member under the filename shown in column E, and fill in the name and matric on its SETUP sheet.   3.  Commit all of them to the repository under docs/tspi/ so the team and the instructor can see them.   4.  From then on, each member logs only in their own file and consolidates weekly."
+   },
+   {
+    "label": "Why there is no button here",
+    "text": "The 2002 workbook used Visual Basic macros for these two jobs. This one does not: a macro-enabled file is blocked by default in current Excel, refuses to run on a Mac without extra permission, and does nothing at all in Google Sheets or LibreOffice, which is where a lot of this class works. Two minutes of copy and paste at the weekly meeting is slower, but it works everywhere and it puts the team in front of its own numbers once a week, which is the point of the meeting."
+   }
+  ]
  },
  "sample": {
   "note": "WORKED SAMPLE  -  all names, matric numbers, emails, phone numbers and the client are fictional. The time, task and defect data is migrated from a real past team's workbooks with identities removed; the test, AI, client, GitHub and evaluation forms are illustrative, written to show what a complete workbook looks like. Do not copy the numbers - copy the habit.",

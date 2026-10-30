@@ -17,6 +17,7 @@ const SECTIONS = [
   ["downloads", "Downloads"],
   ["milestones", "Milestones"],
   ["manual", "How to run the process"],
+  ["member", "Your own workbook"],
   ["sample", "Worked sample: team AUV"],
   ["roles", "Roles"],
   ["phases", "Phases"],
@@ -31,6 +32,20 @@ function appForm(sheet: string): FormType | undefined {
   const form = (sheet === "FORM-SI" ? "SI" : sheet) as FormType;
   return AVAILABLE_FORMS.includes(form) ? form : undefined;
 }
+
+/** Member workbook sheet → where the same record lives in the app. */
+const MEMBER_SHEETS: Record<string, { label: string; form?: FormType; href?: string; note: string }> = {
+  SETUP: { label: "FORM-SI", form: "SI", note: "holds your details; your roles are set on the team roster." },
+  MYTASK: { label: "TASK", form: "TASK", note: "lists every task with its owner; mark your own tasks done there. Your open tasks are on your Dashboard." },
+  MYSCHEDULE: { label: "SCHEDULE", form: "SCHEDULE", note: "has one row per member; you plan your own hours in your row." },
+  LOGT: { label: "LOGT", form: "LOGT", note: "is yours alone." },
+  LOGD: { label: "LOGD", form: "LOGD", note: "is yours alone." },
+  LOGTEST: { label: "LOGTEST", form: "LOGTEST", note: "is shared by the team; each case records its author." },
+  LOGAI: { label: "LOGAI", form: "LOGAI", note: "is yours alone; a teammate approves each entry." },
+  MYSUMP: { label: "SUMP", form: "SUMP", note: "shows the team and each component; a personal plan summary is coming to the app." },
+  MYSUMQ: { label: "SUMQ", form: "SUMQ", note: "shows the team and each component; a personal quality summary is coming to the app." },
+  EXPORT: { label: "Dashboard", href: "/dashboard", note: "shows your hours, tasks and share of the team's work. Nothing to paste." },
+};
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const yn = (v: string) => (v === "Y" ? "Yes" : v === "N" ? "No" : v);
@@ -56,6 +71,31 @@ export default async function ReferencePage() {
       </Link>
     ) : (
       <span className="whitespace-nowrap font-medium">{sheet}</span>
+    );
+  };
+
+  const formLink = (form: FormType, label: string): ReactNode =>
+    teamId ? (
+      <Link key={form} href={`/t/${teamId}/forms/${FORM_INFO[form].slug}`} className="font-medium text-blue-700 underline">
+        {label}
+      </Link>
+    ) : (
+      <span key={form} className="font-medium">
+        {label}
+      </span>
+    );
+  const memberCell = (sheet: string): ReactNode => {
+    const m = MEMBER_SHEETS[sheet]!;
+    return (
+      <span>
+        {m.form && <>{formLink(m.form, m.label)} </>}
+        {m.href && (
+          <Link href={m.href} className="font-medium text-blue-700 underline">
+            {m.label}
+          </Link>
+        )}{" "}
+        {m.note}
+      </span>
     );
   };
 
@@ -96,10 +136,11 @@ export default async function ReferencePage() {
       <section id="downloads" className="scroll-mt-4">
         <Card title="Downloads">
           <p className="mb-3 text-sm text-slate-600">
-            The app follows your lecturer&apos;s TSPi Team Workbook v3.0. Download the workbook for the full manual, and the worked sample to see
-            what a complete record looks like. In the sample, all names, matric numbers, emails, phone numbers and the client are fictional.
+            The app follows your lecturer&apos;s TSPi Workbook v3.0: a team master workbook and a member workbook for each student. Download
+            them for the full manual, and the worked sample to see what a complete record looks like. In the sample, all names, matric
+            numbers, emails, phone numbers and the client are fictional.
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             {Object.entries(REFERENCE_FILES).map(([key, f]) => (
               <a key={key} href={`/api/reference/${key}`} className="block rounded-md border border-slate-200 p-3 hover:bg-slate-50" download>
                 <span className="block font-medium text-blue-700 underline">{f.label}</span>
@@ -169,6 +210,48 @@ export default async function ReferencePage() {
           <h3 className="mb-2 mt-6 text-sm font-semibold">Worked examples</h3>
           <RefTable caption="Worked examples" head={["Situation", "What you record"]} rows={m.examples.map((x) => [x.situation, x.record])} />
           <p className="mt-4 text-sm italic text-slate-600">{m.closing}</p>
+        </Card>
+      </section>
+
+      <section id="member" className="scroll-mt-4">
+        <Card title="Your own workbook">
+          <dl className="mb-4 space-y-2 text-sm">
+            {WORKBOOK.member.about
+              .filter((a) => a.label !== "Colour convention")
+              .map((a) => (
+                <div key={a.label}>
+                  <dt className="font-medium">{a.label}</dt>
+                  <dd className="text-slate-700">{a.text}</dd>
+                </div>
+              ))}
+          </dl>
+          <h3 className="mb-2 text-sm font-semibold">The weekly routine</h3>
+          <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-slate-700">
+            {WORKBOOK.member.routine.map((r) => (
+              <li key={r}>{r.replace(/\s{2,}/g, " ")}</li>
+            ))}
+          </ul>
+          <p className="mb-3 text-sm text-slate-600">
+            In this app your forms already are your own workbook: you record only your own rows, and the team&apos;s TASK, SCHEDULE, SUMP,
+            SUMQ, WEEK and dashboards add them up as you save. There is nothing to export or paste at the weekly meeting, and the team
+            master&apos;s &ldquo;Agrees?&rdquo; check is built in. Each sheet of the member workbook and where it lives here:
+          </p>
+          <RefTable
+            caption="Member workbook sheets in the app"
+            head={["Member workbook", "What it is for", "In this app"]}
+            rows={WORKBOOK.member.sheets
+              .filter((x) => MEMBER_SHEETS[x.sheet])
+              .map((x) => [<span key="s" className="font-mono font-medium">{x.sheet}</span>, x.purpose, memberCell(x.sheet)])}
+          />
+          <h3 className="mb-2 mt-5 text-sm font-semibold">How the workbooks fit together (team master, TEAM sheet)</h3>
+          <dl className="space-y-2 text-sm">
+            {WORKBOOK.member.consolidation.map((c) => (
+              <div key={c.label}>
+                <dt className="font-medium">{c.label}</dt>
+                <dd className="text-slate-700">{c.text.replace(/\s{2,}/g, " ")}</dd>
+              </div>
+            ))}
+          </dl>
         </Card>
       </section>
 

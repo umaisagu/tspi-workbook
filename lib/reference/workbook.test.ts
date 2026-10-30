@@ -18,8 +18,13 @@ describe("Workbook v3.0 reference", () => {
     expect(WORKBOOK.sample.team.name).toBe("AUV");
     expect(WORKBOOK.sample.members).toHaveLength(5);
   });
-  it("only serves the two workbook files", () => {
+  it("has the member workbook's sheets and the master's consolidation steps", () => {
+    expect(WORKBOOK.member.sheets.map((s) => s.sheet)).toEqual(expect.arrayContaining(["MYTASK", "MYSCHEDULE", "LOGT", "LOGD", "MYSUMP", "MYSUMQ", "EXPORT"]));
+    expect(WORKBOOK.member.consolidation).toHaveLength(3);
+  });
+  it("only serves the three workbook files", () => {
     expect(isReferenceFile("sample")).toBe(true);
+    expect(isReferenceFile("member")).toBe(true);
     expect(isReferenceFile("../.env")).toBe(false);
     expect(isReferenceFile("toString")).toBe(false);
     expect(Object.values(REFERENCE_FILES).every((f) => f.file.endsWith(".xlsx"))).toBe(true);

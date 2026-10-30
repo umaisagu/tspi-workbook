@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Build lib/reference/workbook-v3.json from the lecturer's TMA3084 TSPi Workbook v3.0.
+"""Build lib/reference/workbook-v3.json from the lecturer's TMA3084 TSPi Workbook v3.0 (team master, member workbook).
 
 The Reference page (/reference) shows the workbook's manual, standards and guidelines, and rows from
 the worked SAMPLE workbook (fictional team "AUV"). Text is copied from the workbooks, not retyped.
 Re-run after the lecturer publishes a new version:
 
   python3 scripts/extract-reference.py docs/workbook-v3/TSPi_Workbook_TMA3084_v3.0.xlsx \
-      docs/workbook-v3/TSPi_Workbook_TMA3084_SAMPLE_v3.0.xlsx
+      docs/workbook-v3/TSPi_Member_Workbook_TMA3084_v3.0.xlsx docs/workbook-v3/TSPi_Workbook_TMA3084_SAMPLE_v3.0.xlsx
 """
 import datetime as dt
 import json
@@ -126,6 +126,21 @@ def blank(path):
     }
 
 
+def member(path, master):
+    """The member workbook (one per student) and the master's TEAM sheet that consolidates them."""
+    wb = openpyxl.load_workbook(path)
+    readme = wb["README"]
+    team = openpyxl.load_workbook(master)["TEAM"]
+    return {
+        "title": text(readme["A1"].value),
+        "about": [{"label": text(readme[f"B{r}"].value), "text": text(readme[f"C{r}"].value)} for r in range(4, 9)
+                  if readme[f"B{r}"].value],
+        "routine": [text(readme[f"C{r}"].value) for r in range(11, 16) if readme[f"C{r}"].value],
+        "sheets": [{"sheet": ws.title, "title": text(ws["A1"].value), "purpose": text(ws["A2"].value)} for ws in wb.worksheets],
+        "consolidation": [{"label": text(team[f"A{r - 1}"].value), "text": text(team[f"A{r}"].value)} for r in (17, 20, 23)],
+    }
+
+
 def sample(path):
     wb = openpyxl.load_workbook(path)
     setup, si = wb["SETUP"], wb["FORM-SI"]
@@ -149,9 +164,11 @@ def sample(path):
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         raise SystemExit(__doc__)
-    data = {"source": [os.path.basename(p) for p in sys.argv[1:]], **blank(sys.argv[1]), "sample": sample(sys.argv[2])}
+    master, member_wb, sample_wb = sys.argv[1:]
+    data = {"source": [os.path.basename(p) for p in sys.argv[1:]], **blank(master), "member": member(member_wb, master),
+            "sample": sample(sample_wb)}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
