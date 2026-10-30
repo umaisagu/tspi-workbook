@@ -75,14 +75,14 @@ describe("FORM-SI schema", () => {
     ownTransport: false,
     meetingAvailability: ["Saturdays"],
     weeklyCommitments: grid,
-    rolePreferences: { TEAM_LEADER: 5, DEVELOPMENT_MANAGER: 3, PLANNING_MANAGER: 2, QUALITY_PROCESS_MANAGER: 1, SUPPORT_MANAGER: 1 },
+    rolePreferences: { TEAM_LEADER: 5, PRODUCT_OWNER: 4, DEVELOPMENT_MANAGER: 3, PLANNING_MANAGER: 2, QUALITY_PROCESS_MANAGER: 1, SUPPORT_MANAGER: 1 },
     declared: true,
   };
   it("accepts a complete sheet", () => {
     const r = studentInfoSchema.safeParse(valid);
     expect(r.error?.issues).toBeUndefined();
   });
-  it("needs all five roles ranked, a valid GitHub username and the declaration", () => {
+  it("needs all six roles ranked, a valid GitHub username and the declaration", () => {
     const r = studentInfoSchema.safeParse({ ...valid, rolePreferences: { TEAM_LEADER: 5 }, githubUsername: "-bad-", declared: false });
     expect(r.success).toBe(false);
     if (!r.success) {

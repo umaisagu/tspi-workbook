@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "TspiRole" ADD VALUE 'PRODUCT_OWNER';

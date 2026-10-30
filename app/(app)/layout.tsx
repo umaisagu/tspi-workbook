@@ -16,6 +16,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   }
   if (isStaff(user)) links.push({ href: "/monitor", label: "Monitor" });
   if (isLecturer(user)) links.push({ href: "/admin", label: "Admin" }, { href: "/admin/users", label: "Users" });
+  links.push({ href: "/reference", label: "Reference" });
 
   async function doSignOut() {
     "use server";

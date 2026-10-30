@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { DEFECT_TYPES, defectPhaseErrors, defectTypeLabel, isDefectType, nextDefectNumber } from "./defects";
 
 describe("defect types", () => {
-  it("are the workbook's ten standard types", () => {
-    expect(DEFECT_TYPES.map((t) => t.code)).toEqual([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+  it("are the ten TSP types plus the five TMA3084 types (110-150)", () => {
+    expect(DEFECT_TYPES.map((t) => t.code)).toEqual([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150]);
+    expect(defectTypeLabel(150)).toBe("150 AI-Generated");
     expect(isDefectType(80)).toBe(true);
     expect(isDefectType(85)).toBe(false);
     expect(defectTypeLabel(50)).toBe("50 Interface");

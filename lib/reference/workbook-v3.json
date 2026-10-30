@@ -1,0 +1,2181 @@
+{
+ "source": [
+  "TSPi_Workbook_TMA3084_v3.0.xlsx",
+  "TSPi_Member_Workbook_TMA3084_v3.0.xlsx",
+  "TSPi_Workbook_TMA3084_SAMPLE_v3.0.xlsx"
+ ],
+ "title": "TSPi Team Workbook  -  TMA3084 Software Engineering Laboratory",
+ "subtitle": "Faculty of Computer Science & Information Technology, UNIMAS   |   Semester 1, Session 2026/2027   |   Workbook v3.0 (2026-10-29)",
+ "author": "Ts. Nurfauza Jali, FCSIT UNIMAS",
+ "about": [
+  {
+   "label": "What this is",
+   "text": "A Team Software Process (TSP) team workbook rebuilt for TMA3084. It keeps the TSP measurement discipline - time, defects, size, earned value - and adds the forms this course actually assesses: AI-assisted coding, automated testing, GitHub workflow, client engagement and peer evaluation."
+  },
+  {
+   "label": "Lineage",
+   "text": "The process model follows the Team Software Process introduced by Watts S. Humphrey. The original TSPi support workbook (2002, Addison-Wesley) is the ancestor of this file; every sheet here has been rewritten for this course. Forms, phases, defect types and all guidance text are original to TMA3084."
+  },
+  {
+   "label": "What changed from the 2002 workbook",
+   "text": "NEW forms: LOGAI (AI-assisted development), LOGTEST (test cases), LOGCLIENT (client meetings), LOGGIT (GitHub activity), CCR (change requests), PEER, TEAMEVAL, ASSESS, DASHBOARD, FORM-SI.  MODERNISED: phase set now covers AI generation, pull-request review, static analysis, widget test and CI/CD; defect types extended with UI/Layout, State Management, Performance, Security and AI-Generated; size measures cover screens, widgets and API endpoints alongside LOC.  REMOVED: the single-week WEEK form is now a 13-week tracking table, and the PSP-style prediction intervals are dropped as the team has no historical data base."
+  },
+  {
+   "label": "Colour convention",
+   "text": "AMBER cells are yours to fill in.  GREY cells are calculated - typing over one destroys the rollup.  Every drop-down is fed by the LISTS sheet."
+  },
+  {
+   "label": "How to run it",
+   "text": "1. Fill SETUP once, then FORM-SI with every member.  2. Agree roles in ROLES and goals in GOALS.  3. Plan each cycle in TASK and SCHEDULE.  4. Record daily in LOGT, LOGD, LOGTEST and LOGAI.  5. Hold the weekly meeting against WEEK and IRTL.  6. SUMP, SUMQ, SUMS and DASHBOARD fill themselves."
+  },
+  {
+   "label": "One workbook per team",
+   "text": "The team keeps one shared copy in the repository (docs/tspi/). Each member records their own rows in the logs and tags them with their name, so individual contribution is traceable without separate files."
+  },
+  {
+   "label": "Honesty clause",
+   "text": "These numbers are the evidence behind Peer/Individual and Team Evaluation. Logging work you did not do, or back-filling a term's worth of hours the night before a milestone, is academic dishonesty and the pattern is visible in DASHBOARD."
+  }
+ ],
+ "milestones": [
+  {
+   "id": "M1",
+   "name": "Proposal & Planning",
+   "week": 5,
+   "start": "2026-10-19",
+   "due": "2026-10-25",
+   "weight": 0.1,
+   "deliverables": "Proposal, SRS draft, GitHub repo, Team Charter, client approval, >=2 client meetings"
+  },
+  {
+   "id": "M2",
+   "name": "Requirements & Design",
+   "week": 9,
+   "start": "2026-11-16",
+   "due": "2026-11-20",
+   "weight": 0.15,
+   "deliverables": "Revised SRS, SDD, Flutter prototype (4-5 screens), >=10 LOGAI entries, test plan (>=20 cases), >=4 client meetings"
+  },
+  {
+   "id": "M3",
+   "name": "Implementation & Testing",
+   "week": 13,
+   "start": "2026-12-14",
+   "due": "2026-12-20",
+   "weight": 0.35,
+   "deliverables": "Final SDD, >=50 tests at >=60% coverage, GitHub Actions green, APK/IPA build, >=6 client meetings"
+  },
+  {
+   "id": "M4",
+   "name": "Release & Oral Commitment",
+   "week": 15,
+   "start": "2026-12-28",
+   "due": "2027-01-02",
+   "weight": 0.4,
+   "deliverables": "Final report, user manual, demo video 5-10 min, presentation, client sign-off, v1.0.0 release"
+  }
+ ],
+ "thresholds": {
+  "columns": [
+   "M1",
+   "M2",
+   "M3",
+   "M4"
+  ],
+  "rows": [
+   {
+    "label": "Minimum commits (cumulative)",
+    "values": [
+     15,
+     30,
+     50,
+     70
+    ],
+    "note": "Git history, all branches merged to develop"
+   },
+   {
+    "label": "Minimum pull requests merged",
+    "values": [
+     3,
+     8,
+     15,
+     20
+    ],
+    "note": "Every PR needs at least one reviewer approval"
+   },
+   {
+    "label": "Minimum client meetings (cumulative)",
+    "values": [
+     2,
+     4,
+     6,
+     7
+    ],
+    "note": "Logged in LOGCLIENT with client sign-off"
+   },
+   {
+    "label": "Minimum LOGAI entries (cumulative)",
+    "values": [
+     2,
+     10,
+     15,
+     18
+    ],
+    "note": "Every AI-assisted change reviewed and logged"
+   },
+   {
+    "label": "Minimum test cases (cumulative)",
+    "values": [
+     0,
+     20,
+     50,
+     60
+    ],
+    "note": "LOGTEST; unit + widget + integration"
+   },
+   {
+    "label": "Minimum code coverage",
+    "values": [
+     0,
+     0.3,
+     0.6,
+     0.6
+    ],
+    "note": "Critical business logic; from coverage report"
+   },
+   {
+    "label": "Minimum hours per member (cumulative)",
+    "values": [
+     15,
+     40,
+     80,
+     100
+    ],
+    "note": "LOGT; flags under-contribution"
+   }
+  ]
+ },
+ "manual": {
+  "intro": [
+   {
+    "label": "The short version",
+    "text": "This is a Team Software Process (TSP) workbook. TSP is a way of running a software project where the team plans its own work, measures what actually happens, and uses those measurements to plan better next time. The workbook is where the measuring happens."
+   },
+   {
+    "label": "Why bother",
+    "text": "Three questions decide most student projects: are we going to finish on time, is the thing we are building any good, and is everyone actually contributing. Opinions on all three are usually wrong. This workbook answers them with data the team collected itself."
+   },
+   {
+    "label": "The four things you record",
+    "text": "TIME - how long work actually took, not how long it felt.   SIZE - how much you built.   DEFECTS - every mistake found, and the phase where it was made.   STATUS - which tasks are finished. Everything else on the summary sheets is arithmetic on those four."
+   },
+   {
+    "label": "What it is not",
+    "text": "It is not a surveillance tool and it is not graded on neatness. Nobody is marked down for a high defect count - a team recording 40 defects is doing better engineering than an identical team recording 3, because the second team is not looking. What does get noticed is a log that is empty, or one filled in all at once the night before a milestone."
+   }
+  ],
+  "stages": [
+   {
+    "title": "3.  Stage one  -  the launch  (do this in Week 1, and again at the start of every cycle)",
+    "steps": [
+     {
+      "n": 1,
+      "step": "Fill in SETUP",
+      "what": "Course details, team name, project title, client, repository URL and team size. Then check the milestone dates against the course outline and set the thresholds. Every other sheet reads its header from here, so this is the one place you type the team name.",
+      "form": "SETUP",
+      "who": "Team Leader, Week 1"
+     },
+     {
+      "n": 2,
+      "step": "Enter every member",
+      "what": "One row per member in FORM-SI: matric number, full name, UNIMAS email, GitHub handle. The name you type here is the name that appears in every drop-down, so agree on a spelling and do not change it later.",
+      "form": "FORM-SI",
+      "who": "All members, Week 1"
+     },
+     {
+      "n": 3,
+      "step": "Write the team charter",
+      "what": "The lower half of FORM-SI. Six short answers: vision, communication norms, definition of done, conflict resolution, quality standards, expected hours. Write these before you disagree about them, not after.",
+      "form": "FORM-SI",
+      "who": "Team, Week 1"
+     },
+     {
+      "n": 4,
+      "step": "Assign roles",
+      "what": "There are six roles and five of you, so one member holds two this cycle and nobody holds more than two. The double rotates, and nobody keeps the same role for more than two milestones running. The Role Load Check at the bottom of the sheet adds this up for you. A role is real work, not a title.",
+      "form": "ROLES",
+      "who": "Team Leader, each launch"
+     },
+     {
+      "n": 5,
+      "step": "Set measurable goals",
+      "what": "A goal needs a number and an owner or it is a wish. Seven starter goals are listed at the bottom of the sheet; replace them with your own.",
+      "form": "GOALS",
+      "who": "Team, each launch"
+     },
+     {
+      "n": 6,
+      "step": "Agree the strategy",
+      "what": "What each cycle actually delivers, what you build versus reuse, the main technical risk and who owns it. Then record the stack decisions and why - the Design rubric asks you to justify alternatives considered.",
+      "form": "STRAT",
+      "who": "Dev Manager, each launch"
+     },
+     {
+      "n": 7,
+      "step": "Size what you are building",
+      "what": "List the screens, modules and documents in SUMS with a planned size. Estimates will be wrong early on. Record them anyway - a wrong estimate you measured against is worth more than no estimate.",
+      "form": "SUMS",
+      "who": "Planning Manager"
+     },
+     {
+      "n": 8,
+      "step": "Break the work into tasks",
+      "what": "Tasks of roughly 2 to 10 hours, each with one owner, a phase, planned hours and a planned week. A task bigger than 10 hours is hiding something.",
+      "form": "TASK",
+      "who": "Planning Manager"
+     },
+     {
+      "n": 9,
+      "step": "Spread it across the weeks",
+      "what": "Put the hours each week in SCHEDULE. Check the Difference cell at the top: schedule hours must match task hours. If they do not, one of the two plans is fiction.",
+      "form": "SCHEDULE",
+      "who": "Planning Manager"
+     }
+    ]
+   },
+   {
+    "title": "4.  Stage two  -  daily discipline  (the habit that makes everything else work)",
+    "steps": [
+     {
+      "n": 10,
+      "step": "Log time as you work",
+      "what": "Start a LOGT row when you sit down, fill in the stop time when you get up. Subtract interruptions honestly. Reconstructing a week of hours from memory produces numbers that are worse than useless, because they look real.",
+      "form": "LOGT",
+      "who": "Every member, daily"
+     },
+     {
+      "n": 11,
+      "step": "Tag the task",
+      "what": "Put the Task ID from TASK in the Task ID column. That is what makes hours roll up against the plan. Unplanned work with no ID is fine - add the task to TASK afterwards so the plan stays honest.",
+      "form": "LOGT",
+      "who": "Every member, daily"
+     },
+     {
+      "n": 12,
+      "step": "Log every defect",
+      "what": "Anything wrong that you had to fix, including the ones you found yourself within a minute. The hard column is Injected in: the phase where the mistake was MADE, not where you noticed it. Getting that right is the whole point.",
+      "form": "LOGD",
+      "who": "Every member, daily"
+     },
+     {
+      "n": 13,
+      "step": "Log every test",
+      "what": "One row per test case with its type and status. Automated tests get a row too - LOGTEST is the evidence behind the Testing and Release rubric, not a duplicate of your test files.",
+      "form": "LOGTEST",
+      "who": "Quality & Test Manager, daily"
+     },
+     {
+      "n": 14,
+      "step": "Log every AI-assisted change",
+      "what": "Any time Copilot, Claude or another generator wrote code that reached the repository: what you asked for, how many lines it gave you, how many survived review, who reviewed it, and whether tests were written. The reviewer must not be you - the sheet turns that row red.",
+      "form": "LOGAI",
+      "who": "Every member, each change"
+     },
+     {
+      "n": 15,
+      "step": "Record client meetings",
+      "what": "Date, mode, who attended, what was decided, what actions came out and who owns them. Keep the minutes or a photo as evidence. The milestones require 2, 4 and 6 cumulative meetings - this is how you prove it.",
+      "form": "LOGCLIENT",
+      "who": "Product Owner"
+     }
+    ]
+   },
+   {
+    "title": "5.  Stage three  -  the weekly meeting  (about 30 minutes, same time every week)",
+    "steps": [
+     {
+      "n": 16,
+      "step": "Pull the GitHub numbers",
+      "what": "Commits, pull requests, reviews and issues closed per member, read from the repository Insights tab. These are facts - do not estimate them.",
+      "form": "LOGGIT",
+      "who": "Support Manager, weekly"
+     },
+     {
+      "n": 17,
+      "step": "Update task status",
+      "what": "Mark finished tasks Complete. Earned value is only credited for completed tasks; a task that is 90% done earns nothing. That is deliberate - it is what stops a plan from slipping quietly.",
+      "form": "TASK",
+      "who": "Planning Manager, weekly"
+     },
+     {
+      "n": 18,
+      "step": "Read the week's numbers",
+      "what": "WEEK fills itself from SCHEDULE. Look at EV variance: negative means the team has delivered less than it planned by this week, however many hours it has burned. Hours are effort; earned value is progress.",
+      "form": "WEEK",
+      "who": "Team Leader, weekly"
+     },
+     {
+      "n": 19,
+      "step": "Raise risks and issues",
+      "what": "A risk might happen, an issue already has. Both need a likelihood, an impact, an owner and a follow-up date. Priority is calculated; anything scoring 6 or more goes red and gets discussed.",
+      "form": "IRTL",
+      "who": "Team Leader, weekly"
+     },
+     {
+      "n": 20,
+      "step": "Handle change requests",
+      "what": "Once the client has agreed a baseline, changes go through CCR with an estimate and a decision - not through a quiet commit. This is also how scope creep becomes visible instead of mysterious.",
+      "form": "CCR",
+      "who": "Support Manager, as needed"
+     },
+     {
+      "n": 21,
+      "step": "Check the dashboard",
+      "what": "Milestone readiness, effort, quality and contribution on one screen. Anything red is the agenda for the next ten minutes.",
+      "form": "DASHBOARD",
+      "who": "Team, weekly"
+     },
+     {
+      "n": 22,
+      "step": "Talk about contribution",
+      "what": "The contribution panel compares each member's hours, commits, reviews and AI entries against an even share. A flag is a prompt for a conversation, not an accusation - someone may be carrying work the logs do not capture, and if so, that is worth knowing too.",
+      "form": "DASHBOARD",
+      "who": "Team, weekly"
+     },
+     {
+      "n": 23,
+      "step": "Write next week's commitment",
+      "what": "One line in WEEK saying what the team will have finished by the next meeting. Then check it at that meeting. This single habit does more for delivery than any tool.",
+      "form": "WEEK",
+      "who": "Team Leader, weekly"
+     }
+    ]
+   },
+   {
+    "title": "6.  Stage four  -  closing a milestone  (the postmortem)",
+    "steps": [
+     {
+      "n": 24,
+      "step": "Record actual sizes",
+      "what": "Go back to SUMS and fill the actual columns, plus actual SRS and SDD pages. Without actual size there is no defect density and no productivity figure.",
+      "form": "SUMS",
+      "who": "Planning Manager"
+     },
+     {
+      "n": 25,
+      "step": "Check the plan summary",
+      "what": "SUMP now shows where the time went, where defects were injected and where they were removed. Compare the Actual % column against your plan. The gap between them is the lesson.",
+      "form": "SUMP",
+      "who": "Planning Manager"
+     },
+     {
+      "n": 26,
+      "step": "Read the quality summary",
+      "what": "SUMQ is where the uncomfortable truths live: review rates that were too fast, A/FR below 2.0, process yield under 70%. Each one predicts a specific kind of pain in the next cycle.",
+      "form": "SUMQ",
+      "who": "Quality & Test Manager"
+     },
+     {
+      "n": 27,
+      "step": "Enter the coverage figure",
+      "what": "One manual cell on SUMQ, read from the coverage job in GitHub Actions. Do not estimate it.",
+      "form": "SUMQ",
+      "who": "Quality & Test Manager"
+     },
+     {
+      "n": 28,
+      "step": "Run the peer evaluation",
+      "what": "Each member rates every member including themselves, 1 to 5, across the 10 rubric categories. Self-ratings are reported separately so they cannot inflate anyone's score. Rate what people did, not whether you like them.",
+      "form": "PEER",
+      "who": "All members, each milestone"
+     },
+     {
+      "n": 29,
+      "step": "Run the team evaluation",
+      "what": "Ten statements about how the team works, rated 1 to 5. Then look at the spread, not just the mean - where members disagree sharply is the thing worth discussing. Agree actions at the bottom of the sheet.",
+      "form": "TEAMEVAL",
+      "who": "All members, each milestone"
+     },
+     {
+      "n": 30,
+      "step": "Update the assessment tracker",
+      "what": "ASSESS maps every rubric to the forms that produce its evidence. Peer and Team Evaluation fill themselves; the rest are entered by the instructor.",
+      "form": "ASSESS",
+      "who": "Team Leader"
+     },
+     {
+      "n": 31,
+      "step": "Look at the charts together",
+      "what": "Open CHARTS and read them as a team. The four that matter most are Cumulative Earned Value (did we deliver what we planned), Defects Removed by Phase (are we catching them early), Review Rates (did we read fast enough to miss things) and Process Yield (what reached test). A number on a sheet is arguable; a line going the wrong way for six weeks is not.",
+      "form": "CHARTS",
+      "who": "Team, each milestone"
+     },
+     {
+      "n": 32,
+      "step": "Agree three changes",
+      "what": "Not twenty. Pick three things the team will do differently next cycle, write them into GOALS with an owner, and check them at the next postmortem. A postmortem that changes nothing was just a meeting.",
+      "form": "GOALS",
+      "who": "Team, each milestone"
+     }
+    ]
+   }
+  ],
+  "forms": [
+   {
+    "form": "SETUP",
+    "holds": "Course, team, client, repository, milestone plan and the thresholds that drive the dashboard traffic lights.",
+    "owner": "Team Leader",
+    "feeds": "Every sheet header, DASHBOARD"
+   },
+   {
+    "form": "FORM-SI",
+    "holds": "Member details, the team charter, and each member's planned versus actual hours with a contribution flag.",
+    "owner": "All members",
+    "feeds": "Every name drop-down, DASHBOARD"
+   },
+   {
+    "form": "ROLES",
+    "holds": "Which of the six TSP roles each member holds in each milestone, what that role owns, and a check that nobody is carrying more than two.",
+    "owner": "Team Leader",
+    "feeds": "-"
+   },
+   {
+    "form": "GOALS",
+    "holds": "Measurable team goals with a target, an owner and a review date.",
+    "owner": "Team",
+    "feeds": "-"
+   },
+   {
+    "form": "STRAT",
+    "holds": "What each cycle delivers, build-versus-reuse decisions, technical risks, and the technology stack with justification.",
+    "owner": "Dev Manager",
+    "feeds": "Design rubric evidence"
+   },
+   {
+    "form": "TASK",
+    "holds": "Every task with owner, phase, estimate, planned week, status and earned value. Actual hours arrive automatically from LOGT.",
+    "owner": "Planning Manager",
+    "feeds": "SCHEDULE, WEEK, FORM-SI, DASHBOARD"
+   },
+   {
+    "form": "SCHEDULE",
+    "holds": "Planned hours per week from Week 3 to Week 15, against actual hours and earned value.",
+    "owner": "Planning Manager",
+    "feeds": "WEEK, DASHBOARD"
+   },
+   {
+    "form": "LOGT",
+    "holds": "One row per working session: date, member, phase, task, start, stop and interruptions. The single most important sheet in the workbook.",
+    "owner": "Every member",
+    "feeds": "TASK, SCHEDULE, SUMP, SUMQ, FORM-SI, DASHBOARD"
+   },
+   {
+    "form": "LOGD",
+    "holds": "Every defect found: type, component, the phase it was injected in, the phase it was removed in, fix time, severity, and whether it came from AI-generated code.",
+    "owner": "Every member",
+    "feeds": "SUMP, SUMQ, DASHBOARD"
+   },
+   {
+    "form": "LOGTEST",
+    "holds": "Every test case with type, expected and actual result, status, tester and whether it is automated.",
+    "owner": "Quality & Test Manager",
+    "feeds": "SUMQ, DASHBOARD"
+   },
+   {
+    "form": "LOGAI",
+    "holds": "Every AI-assisted change: tool, prompt, lines generated, lines kept, reviewer, verdict and test status. Self-review is flagged red.",
+    "owner": "Every member",
+    "feeds": "SUMP, DASHBOARD"
+   },
+   {
+    "form": "LOGCLIENT",
+    "holds": "Client meetings with mode, attendees, decisions, actions and sign-off evidence.",
+    "owner": "Product Owner",
+    "feeds": "DASHBOARD milestone readiness"
+   },
+   {
+    "form": "LOGGIT",
+    "holds": "Weekly commits, pull requests, reviews and issues per member, read from GitHub Insights.",
+    "owner": "Support Manager",
+    "feeds": "DASHBOARD contribution panel"
+   },
+   {
+    "form": "WEEK",
+    "holds": "The weekly status record: hours, earned value, variance, risk and next week's commitment.",
+    "owner": "Team Leader",
+    "feeds": "-"
+   },
+   {
+    "form": "IRTL",
+    "holds": "Risks and issues with likelihood, impact, calculated priority, owner and follow-up date.",
+    "owner": "Team Leader",
+    "feeds": "DASHBOARD"
+   },
+   {
+    "form": "CCR",
+    "holds": "Change requests against an agreed baseline, with estimated impact and a recorded decision.",
+    "owner": "Support Manager",
+    "feeds": "-"
+   },
+   {
+    "form": "SUMS",
+    "holds": "Planned and actual size of every component and document - LOC, screens, widgets, pages.",
+    "owner": "Planning Manager",
+    "feeds": "SUMP, SUMQ"
+   },
+   {
+    "form": "SUMP",
+    "holds": "Size, time in each phase, and defects injected and removed by phase. Plan columns are typed; actual columns read themselves out of the logs.",
+    "owner": "Planning Manager",
+    "feeds": "SUMQ, DASHBOARD"
+   },
+   {
+    "form": "SUMQ",
+    "holds": "Defect density, defect ratios, development time ratios, review rates, A/FR, phase yield, process yield and test quality - each against a guideline with a verdict.",
+    "owner": "Quality & Test Manager",
+    "feeds": "DASHBOARD"
+   },
+   {
+    "form": "PEER",
+    "holds": "Peer and individual evaluation: every member rates every member on 10 categories out of 50, with self-ratings reported separately.",
+    "owner": "All members",
+    "feeds": "ASSESS, DASHBOARD"
+   },
+   {
+    "form": "TEAMEVAL",
+    "holds": "Team dynamics across 10 variables rated 1 to 5, with the spread highlighted and agreed actions recorded.",
+    "owner": "All members",
+    "feeds": "ASSESS"
+   },
+   {
+    "form": "ASSESS",
+    "holds": "The official assessment weighting mapped to the rubrics and to the forms that supply the evidence.",
+    "owner": "Team Leader",
+    "feeds": "-"
+   },
+   {
+    "form": "DASHBOARD",
+    "holds": "Milestone readiness, effort and schedule, quality, and the contribution check - all read from the logs.",
+    "owner": "Automatic",
+    "feeds": "-"
+   },
+   {
+    "form": "PROJECT",
+    "holds": "The one-page project summary: headline numbers, the earned-value and effort charts, and a plain sentence saying whether the team is on track.",
+    "owner": "Automatic",
+    "feeds": "-"
+   },
+   {
+    "form": "CHARTS",
+    "holds": "Fourteen charts drawn from your logs - earned value, hours, defects by phase, review rates, yields, the quality profile and contribution.",
+    "owner": "Automatic",
+    "feeds": "-"
+   },
+   {
+    "form": "IRWEEK",
+    "holds": "How the risk picture moved each week: raised, closed, still open, and how many are high priority.",
+    "owner": "Team Leader",
+    "feeds": "-"
+   },
+   {
+    "form": "RISK",
+    "holds": "The top open risks and issues from IRTL, ranked by priority. Completed items drop off by themselves.",
+    "owner": "Automatic",
+    "feeds": "-"
+   },
+   {
+    "form": "PHASES",
+    "holds": "The process phase standard: every phase code, what belongs in it, and whether it counts towards development defects.",
+    "owner": "Reference",
+    "feeds": "LOGT, LOGD, TASK"
+   },
+   {
+    "form": "DEFECTTYPES",
+    "holds": "The defect type standard, each with a Flutter example. Types 110 to 150 were added for this course.",
+    "owner": "Reference",
+    "feeds": "LOGD"
+   },
+   {
+    "form": "PLANGUIDE",
+    "holds": "Planning guidelines: how to split effort across phases and what rates to plan against before you have your own data.",
+    "owner": "Reference",
+    "feeds": "TASK, SCHEDULE"
+   },
+   {
+    "form": "QUALGUIDE",
+    "holds": "Quality guidelines: what to aim for on each SUMQ measure, what it means when you are below it, and the order to fix things in.",
+    "owner": "Reference",
+    "feeds": "SUMQ"
+   },
+   {
+    "form": "QPROFPARAM",
+    "holds": "The five targets behind the Quality Profile chart.",
+    "owner": "Quality & Test Mgr",
+    "feeds": "CHARTS"
+   },
+   {
+    "form": "CHARTDATA",
+    "holds": "The calculated series every chart reads from. Look here only to find out why a chart is empty.",
+    "owner": "-",
+    "feeds": "PROJECT, CHARTS"
+   },
+   {
+    "form": "LISTS",
+    "holds": "The source lists behind every drop-down. Leave it alone unless you are adding a role or a size measure.",
+    "owner": "-",
+    "feeds": "-"
+   }
+  ],
+  "examples": [
+   {
+    "situation": "You spend the morning writing the SRS, with a 15-minute phone call in the middle",
+    "record": "LOGT: date 20-Oct-26, member your name, milestone M1, phase REQ, task ID T01, start 09:00, stop 12:00, interrupt 15. Delta calculates as 165 minutes. Week fills in by itself."
+   },
+   {
+    "situation": "During the code review of a login screen, you find a null check that was never written",
+    "record": "LOGD: type 60 - Checking, component auth_module, injected in CODE (the mistake was made while coding), removed in CR (you found it in review), fix time 8 minutes, severity Major, from AI code No."
+   },
+   {
+    "situation": "Copilot generates a form validator; you keep about three quarters of it after review",
+    "record": "LOGAI: tool GitHub Copilot, lines generated 60, lines kept 45, reviewer a teammate's name - not yours - verdict Approved with changes, tests written Yes, commit reference PR#7, approved Yes."
+   },
+   {
+    "situation": "A test that passed last week now fails after a refactor",
+    "record": "LOGTEST: update that test's row to Fail with today's date. Then raise the defect in LOGD with injected phase CODE and removed phase UT, and link the two with the defect reference."
+   },
+   {
+    "situation": "The client asks for an extra screen three weeks before release",
+    "record": "CCR: change type Requirement, what changes and why, estimated hours, affected milestone, reviewer and decision. If approved, add the tasks to TASK so the plan reflects reality."
+   }
+  ],
+  "troubleshooting": [
+   {
+    "symptom": "The name drop-downs are empty",
+    "fix": "FORM-SI has no names in it yet. Every member drop-down in the workbook reads column C of FORM-SI rows 9 to 14. Fill those first."
+   },
+   {
+    "symptom": "A summary number has not changed after I logged work",
+    "fix": "Press F9, or close and reopen the file. If it still looks wrong, check the phase or task ID you typed in the log - a typo means the row matches nothing and is silently excluded."
+   },
+   {
+    "symptom": "Hours are logged but TASK shows zero actual hours",
+    "fix": "The Task ID column in LOGT is blank or does not match an ID in TASK. The match is exact, so T1 and T01 are different tasks."
+   },
+   {
+    "symptom": "Defect density and review rates are blank",
+    "fix": "SUMS has no actual size recorded, so there is nothing to divide by. Fill the actual columns in SUMS at the end of each milestone."
+   },
+   {
+    "symptom": "Someone's peer score looks far too low",
+    "fix": "Check that every member filled in their own rating block. An empty block is ignored rather than counted as zero, but a block filled in for only some members will skew the average."
+   },
+   {
+    "symptom": "A grey cell shows a wrong number and I want to correct it",
+    "fix": "Do not type over it. Find the log row that is wrong and fix that. Overwriting a calculated cell breaks the formula permanently and every number downstream of it."
+   },
+   {
+    "symptom": "We forgot to log for two weeks",
+    "fix": "Reconstruct what you honestly can, mark those rows in the comments column, and say so at the weekly meeting. Inventing plausible numbers is worse than admitting a gap - the gap is recoverable, fabricated data quietly corrupts every conclusion the team draws for the rest of the project."
+   }
+  ],
+  "closing": "The workbook cannot make the team work well. What it can do is make it obvious, early and to everyone, when the team is not - while there is still time to do something about it. A team that logs honestly and looks at the numbers every week will finish; a team that fills this in the weekend before submission will have a very tidy record of a project that went wrong."
+ },
+ "roles": [
+  {
+   "role": "Team Leader",
+   "owns": "Runs the launch and the weekly meeting, keeps the team to its plan, owns the relationship with the instructor and demonstrator, reports status."
+  },
+  {
+   "role": "Product Owner",
+   "owns": "Owns the client relationship and the backlog. Books and chairs client meetings, turns client needs into prioritised user stories, obtains sign-off."
+  },
+  {
+   "role": "Development Manager",
+   "owns": "Owns the Flutter codebase and the architecture. Allocates implementation work, enforces the branching model and the pull-request review rule."
+  },
+  {
+   "role": "Planning Manager",
+   "owns": "Owns TASK and SCHEDULE. Produces the plan, tracks earned value weekly, raises the alarm when the team drifts off plan."
+  },
+  {
+   "role": "Quality & Test Manager",
+   "owns": "Owns SUMQ, LOGD and LOGTEST - the review, inspection and test discipline. Tracks defect density, yield and coverage, chairs inspections, owns the AI-code review rule, and reports release readiness."
+  },
+  {
+   "role": "Support Manager",
+   "owns": "Owns the repository, CI/CD, environments, builds and configuration control. Maintains LOGGIT and the CCR log."
+  }
+ ],
+ "roleRule": "There are six roles and five of you, so in every cycle exactly one member holds two roles and nobody holds more than two. The double role rotates - the same member does not carry it twice in a row - and every member holds a role in every cycle. No member may hold the same role for more than two consecutive milestones. Agree the rotation at the launch meeting and record it above; a change mid-cycle goes through the CCR log with the reason stated. If your team has four members, two of you will double up; the check above works that out from the team size.",
+ "phases": [
+  {
+   "code": "MGMT",
+   "name": "Management & Miscellaneous",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "N",
+   "removed": "N",
+   "development": "N",
+   "sizeBasis": "-",
+   "belongs": "Team admin, lab attendance, instructor and demonstrator check-ins, anything not project work."
+  },
+  {
+   "code": "STRAT",
+   "name": "Launch & Strategy",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "N",
+   "removed": "N",
+   "development": "N",
+   "sizeBasis": "-",
+   "belongs": "The launch meeting, cycle strategy, build-versus-reuse and technology decisions."
+  },
+  {
+   "code": "PLAN",
+   "name": "Planning",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "-",
+   "belongs": "Producing TASK and SCHEDULE, estimating, re-planning after a change request."
+  },
+  {
+   "code": "REQ",
+   "name": "Requirements / SRS",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "Pages",
+   "belongs": "Interviews with the client, user stories, use cases, writing and revising the SRS."
+  },
+  {
+   "code": "STP",
+   "name": "System Test Plan",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "-",
+   "belongs": "Writing the system test plan against the requirements."
+  },
+  {
+   "code": "REQINSP",
+   "name": "Requirements Inspection",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "Pages",
+   "belongs": "Team inspection of the SRS. Log the time you spend inspecting, not preparing."
+  },
+  {
+   "code": "HLD",
+   "name": "High-Level Design / Architecture (SDD)",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "Pages",
+   "belongs": "Architecture, component breakdown, data model, writing the SDD."
+  },
+  {
+   "code": "ITP",
+   "name": "Integration Test Plan",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "-",
+   "belongs": "Writing the integration test plan."
+  },
+  {
+   "code": "HLDINSP",
+   "name": "HLD Inspection",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "Pages",
+   "belongs": "Team inspection of the SDD."
+  },
+  {
+   "code": "DLD",
+   "name": "Detailed Design (screens, widgets, models)",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Designing a specific screen, widget, service or model before writing it."
+  },
+  {
+   "code": "DLDR",
+   "name": "Detailed Design Review",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Your own review of your detailed design, before anyone else sees it."
+  },
+  {
+   "code": "TD",
+   "name": "Test Development",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "-",
+   "belongs": "Writing test cases - the writing, not the running."
+  },
+  {
+   "code": "DLDINSP",
+   "name": "Detailed Design Inspection",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Team inspection of a detailed design."
+  },
+  {
+   "code": "CODE",
+   "name": "Code - hand-written Dart/Flutter",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Dart and Flutter you wrote yourself, keyboard to screen."
+  },
+  {
+   "code": "AIGEN",
+   "name": "Code - AI-assisted generation (Vibe)",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Prompting a generator and shaping its output. Every AIGEN session needs a LOGAI row."
+  },
+  {
+   "code": "CR",
+   "name": "Code Review / Pull-Request Review",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Reviewing someone's pull request, or them reviewing yours. Log it as CR either way."
+  },
+  {
+   "code": "BUILD",
+   "name": "Build & Static Analysis (flutter analyze)",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "flutter analyze, flutter build, fixing what they report, dependency and signing problems."
+  },
+  {
+   "code": "CODEINSP",
+   "name": "Code Inspection",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Team code inspection - several people reading the same code together."
+  },
+  {
+   "code": "UT",
+   "name": "Unit Test",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Running and fixing unit tests."
+  },
+  {
+   "code": "WT",
+   "name": "Widget Test",
+   "scope": "P",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Running and fixing Flutter widget tests."
+  },
+  {
+   "code": "IT",
+   "name": "Build & Integration Test",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Building the whole app and testing components together."
+  },
+  {
+   "code": "CICD",
+   "name": "CI/CD Pipeline (GitHub Actions)",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "-",
+   "belongs": "GitHub Actions workflows, the coverage job, release automation."
+  },
+  {
+   "code": "ST",
+   "name": "System Test",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "Y",
+   "sizeBasis": "LOC",
+   "belongs": "Testing the finished app against the SRS, end to end."
+  },
+  {
+   "code": "UAT",
+   "name": "Client Acceptance Test",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "N",
+   "sizeBasis": "LOC",
+   "belongs": "The client or their staff using the app and telling you what is wrong."
+  },
+  {
+   "code": "DOC",
+   "name": "Documentation & User Manual",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "N",
+   "removed": "N",
+   "development": "N",
+   "sizeBasis": "Pages",
+   "belongs": "User manual, final report, API documentation, deployment guide."
+  },
+  {
+   "code": "PM",
+   "name": "Postmortem",
+   "scope": "S",
+   "logTime": "Y",
+   "injected": "N",
+   "removed": "N",
+   "development": "N",
+   "sizeBasis": "-",
+   "belongs": "The postmortem: reading your own data and agreeing what changes next cycle."
+  },
+  {
+   "code": "PL",
+   "name": "Product Life (post-release)",
+   "scope": "N",
+   "logTime": "N",
+   "injected": "Y",
+   "removed": "Y",
+   "development": "N",
+   "sizeBasis": "LOC",
+   "belongs": "Anything after the release is handed over."
+  }
+ ],
+ "phaseNotes": [
+  "Scope:  S = the phase applies to the system as a whole.  P = it applies to one component.  N = neither.",
+  "Log time:  Y means sessions in this phase belong in LOGT.",
+  "Log injected / removed:  Y means LOGD may name this phase in the Injected in or Removed in column.",
+  "Counts as development:  Y means the phase feeds the development defect totals on SUMP and the yields on SUMQ.",
+  "Size basis:  what the phase's rate is measured against when SUMQ computes review rates."
+ ],
+ "defectTypes": [
+  {
+   "code": 10,
+   "name": "Documentation",
+   "covers": "Comments, README, API docs, user manual",
+   "example": "A widget's doc comment describes the old behaviour after a refactor."
+  },
+  {
+   "code": 20,
+   "name": "Syntax",
+   "covers": "Dart syntax, spelling, punctuation, typos",
+   "example": "Missing semicolon, misspelled identifier, wrong bracket."
+  },
+  {
+   "code": 30,
+   "name": "Build / Package",
+   "covers": "pubspec, dependency conflict, Gradle, signing, build config",
+   "example": "pubspec version conflict; Gradle or signing config breaks the release build."
+  },
+  {
+   "code": 40,
+   "name": "Assignment",
+   "covers": "Declaration, duplicate names, scope, null-safety misuse",
+   "example": "A nullable field used without a null check; two widgets sharing a class name."
+  },
+  {
+   "code": 50,
+   "name": "Interface",
+   "covers": "Procedure calls, REST/API contract, parameters, serialization",
+   "example": "A repository returns a List where the caller awaits a Stream; JSON key mismatch."
+  },
+  {
+   "code": 60,
+   "name": "Checking",
+   "covers": "Error messages, input validation, inadequate checks",
+   "example": "No validation on a quantity field; an empty list shows a spinner forever."
+  },
+  {
+   "code": 70,
+   "name": "Data",
+   "covers": "Structure, content, persistence, local DB / Firestore schema",
+   "example": "Dates stored local but compared as UTC; a schema missing a sync-status column."
+  },
+  {
+   "code": 80,
+   "name": "Function",
+   "covers": "Logic, pointers, loops, recursion, computation, business rules",
+   "example": "A total recalculated on add but not on edit; discount applied before tax."
+  },
+  {
+   "code": 90,
+   "name": "System",
+   "covers": "Configuration, timing, memory, platform (iOS/Android) differences",
+   "example": "Works on Android, fails on iOS; a timing problem only under slow network."
+  },
+  {
+   "code": 100,
+   "name": "Environment",
+   "covers": "Design, compile, test or other support system problems",
+   "example": "The emulator, the CI runner or the toolchain itself is the problem."
+  },
+  {
+   "code": 110,
+   "name": "UI / Layout",
+   "covers": "Overflow, responsiveness, theming, accessibility, Material 3 misuse",
+   "example": "RenderFlex overflow on a small screen; text unreadable at the counter's font setting."
+  },
+  {
+   "code": 120,
+   "name": "State Management",
+   "covers": "Provider/Riverpod/GetX misuse, rebuild storms, stale or lost state",
+   "example": "setState after dispose; a filter that does not clear when a screen is reopened."
+  },
+  {
+   "code": 130,
+   "name": "Performance",
+   "covers": "Jank, frame drops, oversized images, unbounded list builds",
+   "example": "A long list janks; an oversized image decoded on every rebuild."
+  },
+  {
+   "code": 140,
+   "name": "Security",
+   "covers": "Hard-coded API key, missing auth check, unsafe storage, leaked PII",
+   "example": "An API key committed in source; a screen reachable without an auth check."
+  },
+  {
+   "code": 150,
+   "name": "AI-Generated",
+   "covers": "Defect traced to AI-generated code that passed review unverified",
+   "example": "Generated code that passed review but was wrong - a validator accepting negatives."
+  }
+ ],
+ "defectTypeNote": "Pick the type that describes the mistake, not the symptom. A crash caused by a missing null check is Assignment, not System. If a defect genuinely spans two types, choose the earlier one in the list - that is where the fix belongs. Type 150 is for a defect that reached the repository inside generated code: use it alongside the From AI code column in LOGD, because together they show whether the review rule is working.",
+ "planGuide": {
+  "notes": [
+   {
+    "label": "The first plan is a guess",
+    "text": "Your first cycle has no history, so the estimates below are a starting point, not a standard. Record what actually happens and the second plan will be built on your own numbers instead of someone else's."
+   },
+   {
+    "label": "Effort per member",
+    "text": "Budget about 10 hours per member per week across a 13-week semester. For a five-person team that is roughly 600 team-hours for the whole project. If your plan totals far more than that, you are planning work the team cannot do."
+   },
+   {
+    "label": "Task size",
+    "text": "Break work into tasks of 2 to 10 hours. Anything larger hides its own progress - you cannot tell a 20-hour task that is half done from one that has barely started."
+   },
+   {
+    "label": "Rough shape of a cycle",
+    "text": "Requirements and design together should be about a third of the effort, implementation about a third, and test, documentation and management the rest. A plan that spends 70% on coding is a plan that will spend its last three weeks in test."
+   }
+  ],
+  "shares": [
+   {
+    "group": "Launch, strategy and planning",
+    "share": "8%",
+    "phases": "STRAT + PLAN + MGMT"
+   },
+   {
+    "group": "Requirements and inspection",
+    "share": "14%",
+    "phases": "REQ + REQINSP + STP"
+   },
+   {
+    "group": "Architecture and inspection",
+    "share": "12%",
+    "phases": "HLD + HLDINSP + ITP"
+   },
+   {
+    "group": "Detailed design and review",
+    "share": "16%",
+    "phases": "DLD + DLDR + DLDINSP"
+   },
+   {
+    "group": "Implementation",
+    "share": "22%",
+    "phases": "CODE + AIGEN"
+   },
+   {
+    "group": "Review and inspection of code",
+    "share": "10%",
+    "phases": "CR + CODEINSP"
+   },
+   {
+    "group": "Test development and testing",
+    "share": "13%",
+    "phases": "TD + BUILD + UT + WT + IT + ST"
+   },
+   {
+    "group": "CI/CD and release",
+    "share": "2%",
+    "phases": "CICD"
+   },
+   {
+    "group": "Documentation and postmortem",
+    "share": "3%",
+    "phases": "DOC + PM"
+   }
+  ],
+  "rates": [
+   {
+    "activity": "Writing requirements",
+    "rate": "2 - 4 SRS pages per hour",
+    "why": "Includes the thinking, not just the typing."
+   },
+   {
+    "activity": "Requirements inspection",
+    "rate": "no faster than 10 pages per hour",
+    "why": "Faster than this and you stop finding defects."
+   },
+   {
+    "activity": "Writing a design",
+    "rate": "3 - 5 SDD pages per hour",
+    "why": "Diagrams take longer than prose."
+   },
+   {
+    "activity": "Design inspection",
+    "rate": "no faster than 10 pages per hour",
+    "why": "Same reason as the SRS."
+   },
+   {
+    "activity": "Writing Dart by hand",
+    "rate": "20 - 40 LOC per hour",
+    "why": "New and changed lines, including the thinking."
+   },
+   {
+    "activity": "AI-assisted generation",
+    "rate": "60 - 120 LOC per hour kept",
+    "why": "Faster to produce, but the review is the real cost."
+   },
+   {
+    "activity": "Design or code review",
+    "rate": "no faster than 200 LOC per hour",
+    "why": "The single most reliable number in TSP."
+   },
+   {
+    "activity": "Writing test cases",
+    "rate": "4 - 8 cases per hour",
+    "why": "A case is a scenario, not a line of code."
+   }
+  ],
+  "aiWarning": "Generated code arrives faster than written code, and teams plan as though that speed carries through to delivery. It does not. The generator moves the work from writing to reviewing, and a team that plans for the first saving without planning for the second cost finds its defects in system test instead of in review. Plan AIGEN at a high rate and plan CR high to match it."
+ },
+ "qualGuide": {
+  "idea": "A defect costs more the later you find it. One caught in a design review costs minutes; the same defect caught in system test costs hours; caught by the client it costs their trust. Every measure on SUMQ exists to answer one question: are you finding your defects early, or is the machine finding them for you late?",
+  "measures": [
+   {
+    "measure": "Review rate",
+    "aim": "<= 200 LOC/hour",
+    "below": "You read too fast to find anything. The rate, not the hours, is what predicts how many defects a review catches - halve the rate before you add more reviewers."
+   },
+   {
+    "measure": "Inspection rate",
+    "aim": "<= 10 pages/hour",
+    "below": "Same problem on documents. An SRS inspection at 30 pages an hour finds typos, not missing requirements."
+   },
+   {
+    "measure": "A/FR  (appraisal / failure)",
+    "aim": ">= 2.0",
+    "below": "You are spending more time fixing in test than reviewing before it. This is the earliest reliable warning that system test will hurt."
+   },
+   {
+    "measure": "Design review / design time",
+    "aim": ">= 0.5",
+    "below": "Designs are going to code unreviewed. Defects injected in design are the expensive ones - they survive until integration."
+   },
+   {
+    "measure": "Code review / code time",
+    "aim": ">= 0.5",
+    "below": "Code is being merged on a glance. With AI-generated code in the repository this matters more, not less."
+   },
+   {
+    "measure": "Design time / code time",
+    "aim": ">= 1.0",
+    "below": "The team is typing before it is thinking. Expect rework."
+   },
+   {
+    "measure": "Yield before unit test",
+    "aim": ">= 70%",
+    "below": "Most of your defects are reaching test. Each one there costs several times what it would have cost in review."
+   },
+   {
+    "measure": "Yield before system test",
+    "aim": ">= 85%",
+    "below": "Integration will be slow and unpredictable, because you are still finding unit-level defects there."
+   },
+   {
+    "measure": "Yield before acceptance test",
+    "aim": ">= 95%",
+    "below": "The client is about to become your tester. This is the number that decides whether handover goes well."
+   },
+   {
+    "measure": "Defects / KLOC in test",
+    "aim": "falling each cycle",
+    "below": "The absolute number matters less than the direction. A team whose test density rises cycle over cycle is reviewing less, not writing better."
+   },
+   {
+    "measure": "Defects found in acceptance",
+    "aim": "0 critical",
+    "below": "Anything critical here was missed by every check you have. Work backwards and find which one."
+   },
+   {
+    "measure": "Code coverage",
+    "aim": ">= 60% on logic",
+    "below": "Untested logic is not working logic, it is logic nobody has contradicted yet."
+   },
+   {
+    "measure": "Test pass rate",
+    "aim": ">= 95%",
+    "below": "A suite that is often red stops being read. Fix or delete failing tests - never ignore them."
+   },
+   {
+    "measure": "AI entries without a reviewer",
+    "aim": "0",
+    "below": "Every one of these is generated code merged on trust. This is the single rule most worth enforcing."
+   }
+  ],
+  "fixOrder": "If several measures are red, fix them in this order: review rate first, because it is the cheapest change and it moves everything downstream; then design review time, because design defects are the costly ones; then coverage. Do not start by adding testers - testing finds defects later and more expensively than reviewing does, and a team that responds to poor quality by testing harder is paying the highest price available for the same information."
+ },
+ "member": {
+  "title": "My TSPi Workbook  -  TMA3084 Software Engineering Laboratory",
+  "about": [
+   {
+    "label": "What this is",
+    "text": "Your own copy of the TSPi workbook. You record your work here - your time, your defects, your tests, your AI-assisted changes - and nobody else types in this file."
+   },
+   {
+    "label": "How it fits together",
+    "text": "Your team also keeps one master workbook. Once a week, at the team meeting, you open the EXPORT sheet here and paste its numbers into your row on the master's TEAM sheet, then paste your log rows into the master's shared logs. That is the whole handover."
+   },
+   {
+    "label": "Fill in SETUP first",
+    "text": "Your name and matric number on SETUP are what the EXPORT sheet stamps onto your numbers, so the team can tell whose row is whose."
+   },
+   {
+    "label": "Colour convention",
+    "text": "AMBER cells are yours to fill in. GREY cells are calculated - typing over one breaks the summary that depends on it."
+   },
+   {
+    "label": "The honest bit",
+    "text": "This file is the evidence behind your individual mark. Logging work you did not do is academic dishonesty, and because the master cross-checks your reported hours against the rows you paste in, a workbook that disagrees with itself is visible immediately."
+   }
+  ],
+  "routine": [
+   "Every working session:  start a LOGT row when you sit down, close it when you get up.",
+   "Every defect you fix:   a LOGD row, with the phase the mistake was made in.",
+   "Every test you run:     a LOGTEST row.",
+   "Every AI-assisted change: a LOGAI row, with a teammate named as reviewer.",
+   "Every week at the meeting: open EXPORT, paste into the master, done."
+  ],
+  "sheets": [
+   {
+    "sheet": "README",
+    "title": "My TSPi Workbook  -  TMA3084 Software Engineering Laboratory",
+    "purpose": "Faculty of Computer Science & Information Technology, UNIMAS   |   Semester 1, Session 2026/2027   |   Member workbook v3.0"
+   },
+   {
+    "sheet": "SETUP",
+    "title": "My Details",
+    "purpose": "Fill this once. Everything else in this workbook reads from here."
+   },
+   {
+    "sheet": "MYTASK",
+    "title": "My Task Plan",
+    "purpose": "Only the tasks you own. Actual hours arrive from LOGT by themselves."
+   },
+   {
+    "sheet": "MYSCHEDULE",
+    "title": "My Weekly Schedule",
+    "purpose": "What you planned to put in each week, against what you actually did."
+   },
+   {
+    "sheet": "LOGT",
+    "title": "Form LOGT  -  My Time Recording Log",
+    "purpose": "One row per working session. Delta is calculated; never type over it."
+   },
+   {
+    "sheet": "LOGD",
+    "title": "Form LOGD  -  My Defect Recording Log",
+    "purpose": "Every defect you found and fixed. Injected in is the phase the mistake was MADE."
+   },
+   {
+    "sheet": "LOGTEST",
+    "title": "Form LOGTEST  -  My Test Case Log",
+    "purpose": "Automated tests get a row too."
+   },
+   {
+    "sheet": "LOGAI",
+    "title": "Form LOGAI  -  My AI-Assisted Development Log",
+    "purpose": "Every change where a generator wrote code that reached the repository. The reviewer must not be you."
+   },
+   {
+    "sheet": "MYSUMP",
+    "title": "My Plan Summary",
+    "purpose": "Plan column is yours; actual reads itself out of your logs."
+   },
+   {
+    "sheet": "MYSUMQ",
+    "title": "My Quality Summary",
+    "purpose": "Your own review discipline. These are the numbers the Quality & Test Manager will ask you about."
+   },
+   {
+    "sheet": "EXPORT",
+    "title": "EXPORT  -  what to give the team each week",
+    "purpose": "Copy the amber row, Paste Special > Values into your row on the master's TEAM sheet, columns F to K."
+   },
+   {
+    "sheet": "PHASES",
+    "title": "Process Phase Standard",
+    "purpose": "The phase codes you may use in LOGT, LOGD and MYTASK."
+   },
+   {
+    "sheet": "DEFECTTYPES",
+    "title": "Defect Type Standard",
+    "purpose": "The types you may choose in LOGD."
+   },
+   {
+    "sheet": "LISTS",
+    "title": "Validation Lists",
+    "purpose": "Source lists for the drop-downs in this workbook."
+   }
+  ],
+  "consolidation": [
+   {
+    "label": "Consolidate Plans",
+    "text": "Do this at the weekly meeting, with all five workbooks open.   1.  Each member opens their own workbook and goes to its EXPORT sheet - the numbers there are already calculated.   2.  Copy the row of six values and Paste Special > Values into columns F to K of your row above.   3.  Paste your log rows into the shared logs here (LOGT, LOGD, LOGTEST, LOGAI) so the team summaries and charts include your work.   4.  Check the Agrees? column. Green means the two sides match; anything else means somebody's work is recorded in one place and not the other, and the team plan is wrong until it is fixed."
+   },
+   {
+    "label": "Make copies of the workbook for the team",
+    "text": "Do this once, at the launch.   1.  Fill SETUP and FORM-SI in this master first - the filenames in column E above are built from the team name and each matric number.   2.  Take the blank member workbook (TSPi_Member_Workbook_TMA3084_v3.0.xlsx), save one copy per member under the filename shown in column E, and fill in the name and matric on its SETUP sheet.   3.  Commit all of them to the repository under docs/tspi/ so the team and the instructor can see them.   4.  From then on, each member logs only in their own file and consolidates weekly."
+   },
+   {
+    "label": "Why there is no button here",
+    "text": "The 2002 workbook used Visual Basic macros for these two jobs. This one does not: a macro-enabled file is blocked by default in current Excel, refuses to run on a Mac without extra permission, and does nothing at all in Google Sheets or LibreOffice, which is where a lot of this class works. Two minutes of copy and paste at the weekly meeting is slower, but it works everywhere and it puts the team in front of its own numbers once a week, which is the point of the meeting."
+   }
+  ]
+ },
+ "sample": {
+  "note": "WORKED SAMPLE  -  all names, matric numbers, emails, phone numbers and the client are fictional. The time, task and defect data is migrated from a real past team's workbooks with identities removed; the test, AI, client, GitHub and evaluation forms are illustrative, written to show what a complete workbook looks like. Do not copy the numbers - copy the habit.",
+  "team": {
+   "demonstrator": "Mr. MD. Aminul Islam Rakib",
+   "labGroup": "1",
+   "name": "AUV",
+   "project": "SeaFresh Supplier Mobile App",
+   "client": "SeaFresh Seafood Trading (sample client)",
+   "repository": "https://github.com/tma3084-sample/auv-seafresh",
+   "size": 5
+  },
+  "members": [
+   {
+    "matric": "90001",
+    "name": "Aisyah Binti Rahman",
+    "github": "aisyah-r",
+    "primaryRole": "Team Leader",
+    "secondaryRole": "Support Manager"
+   },
+   {
+    "matric": "90002",
+    "name": "Daniel Wong Jun Hao",
+    "github": "danielwjh",
+    "primaryRole": "Development Manager",
+    "secondaryRole": null
+   },
+   {
+    "matric": "90003",
+    "name": "Mei Ling Chong",
+    "github": "meiling-c",
+    "primaryRole": "Planning Manager",
+    "secondaryRole": null
+   },
+   {
+    "matric": "90004",
+    "name": "Harith Bin Ismail",
+    "github": "harith-i",
+    "primaryRole": "Product Owner",
+    "secondaryRole": null
+   },
+   {
+    "matric": "90005",
+    "name": "Priya Nair",
+    "github": "priyanair",
+    "primaryRole": "Quality & Test Manager",
+    "secondaryRole": null
+   }
+  ],
+  "charter": [
+   {
+    "label": "Team vision",
+    "text": "Give SeaFresh's counter staff a phone app that replaces the paper order book, so an order reaches the kitchen without being re-typed."
+   },
+   {
+    "label": "Communication norms",
+    "text": "WhatsApp group for day-to-day, GitHub Issues for anything that needs a record. Replies within 12 hours on weekdays. Stand-up every Wednesday 4pm in the lab; client meeting every second Saturday."
+   },
+   {
+    "label": "Definition of done",
+    "text": "Merged to develop, reviewed and approved by someone other than the author, tests written and passing, CI green, and the LOGAI row filled in if a generator touched it."
+   },
+   {
+    "label": "Conflict resolution",
+    "text": "Raise it in the Wednesday meeting first. If the team cannot settle it, the Team Leader decides and records the reason in IRTL. Nobody re-opens a settled decision without new information."
+   },
+   {
+    "label": "Quality standards",
+    "text": "60% coverage on business logic, zero analyzer warnings on develop, code review within 24 hours, and no AI-generated code merged without a second pair of eyes."
+   },
+   {
+    "label": "Commitment",
+    "text": "About 10 hours per person per week. Tell the team in advance if you will be away; an unexplained silent week gets raised at the next meeting."
+   }
+  ],
+  "task": [
+   [
+    "T01",
+    "M1",
+    "MGMT",
+    "SYSTEM",
+    "Team admin, lab attendance, instructor check-ins",
+    "Aisyah Binti Rahman",
+    7,
+    3,
+    "Complete"
+   ],
+   [
+    "T02",
+    "M1",
+    "STRAT",
+    "SYSTEM",
+    "Launch meeting, cycle strategy and stack decisions",
+    "Aisyah Binti Rahman",
+    11,
+    3,
+    "Complete"
+   ],
+   [
+    "T03",
+    "M1",
+    "PLAN",
+    "SYSTEM",
+    "Task and schedule plan for the cycle",
+    "Mei Ling Chong",
+    10.5,
+    3,
+    "Complete"
+   ],
+   [
+    "T04",
+    "M1",
+    "REQ",
+    "SYSTEM",
+    "Elicit requirements from SeaFresh and write the SRS",
+    "Harith Bin Ismail",
+    7,
+    4,
+    "Complete"
+   ],
+   [
+    "T05",
+    "M1",
+    "STP",
+    "SYSTEM",
+    "System test plan",
+    "Mei Ling Chong",
+    6,
+    4,
+    "Complete"
+   ],
+   [
+    "T06",
+    "M1",
+    "REQINSP",
+    "SYSTEM",
+    "Team inspection of the SRS",
+    "Harith Bin Ismail",
+    11,
+    4,
+    "Complete"
+   ],
+   [
+    "T07",
+    "M1",
+    "HLD",
+    "SYSTEM",
+    "Architecture and SDD",
+    "Daniel Wong Jun Hao",
+    9.5,
+    4,
+    "Complete"
+   ],
+   [
+    "T08",
+    "M1",
+    "ITP",
+    "SYSTEM",
+    "Integration test plan",
+    "Mei Ling Chong",
+    6,
+    4,
+    "Complete"
+   ]
+  ],
+  "logt": [
+   [
+    "2026-10-05",
+    "Aisyah Binti Rahman",
+    "M1",
+    "MGMT",
+    "T01",
+    "SYSTEM - Team admin, lab attendance, instructor check-ins",
+    "10:00",
+    "11:56",
+    0,
+    "No",
+    null
+   ],
+   [
+    "2026-10-06",
+    "Aisyah Binti Rahman",
+    "M1",
+    "STRAT",
+    "T02",
+    "SYSTEM - Launch meeting, cycle strategy and stack decisions",
+    "13:23",
+    "15:23",
+    0,
+    "No",
+    null
+   ],
+   [
+    "2026-10-07",
+    "Aisyah Binti Rahman",
+    "M1",
+    "PLAN",
+    "T03",
+    "SYSTEM - Task and schedule plan for the cycle",
+    "12:15",
+    "14:22",
+    0,
+    "No",
+    null
+   ],
+   [
+    "2026-10-15",
+    "Aisyah Binti Rahman",
+    "M1",
+    "REQ",
+    "T04",
+    "SYSTEM - Elicit requirements from SeaFresh and write the SRS",
+    "08:00",
+    "08:51",
+    0,
+    "No",
+    null
+   ],
+   [
+    "2026-10-16",
+    "Aisyah Binti Rahman",
+    "M1",
+    "REQINSP",
+    "T06",
+    "SYSTEM - Team inspection of the SRS",
+    "11:10",
+    "12:50",
+    0,
+    "No",
+    null
+   ],
+   [
+    "2026-10-17",
+    "Aisyah Binti Rahman",
+    "M1",
+    "HLD",
+    "T07",
+    "SYSTEM - Architecture and SDD",
+    "10:00",
+    "10:55",
+    0,
+    "No",
+    null
+   ],
+   [
+    "2026-10-12",
+    "Aisyah Binti Rahman",
+    "M1",
+    "HLDINSP",
+    "T09",
+    "SYSTEM - Team inspection of the SDD",
+    "09:00",
+    "09:48",
+    0,
+    "No",
+    null
+   ],
+   [
+    "2026-10-20",
+    "Aisyah Binti Rahman",
+    "M1",
+    "DLDR",
+    "T11",
+    "UI / screens - Personal review of the detailed design",
+    "14:10",
+    "16:10",
+    0,
+    "No",
+    null
+   ]
+  ],
+  "logd": [
+   [
+    "2026-12-08",
+    "D001",
+    "Daniel Wong Jun Hao",
+    "M3",
+    "10 - Documentation",
+    "HLD",
+    "HLD",
+    "HLDINSP",
+    30,
+    "PR",
+    "Minor",
+    "No",
+    "Proposal correction on system artefacts"
+   ],
+   [
+    "2026-10-21",
+    "D002",
+    "Mei Ling Chong",
+    "M1",
+    "10 - Documentation",
+    "SRS",
+    "HLDINSP",
+    "HLDINSP",
+    30,
+    "PR",
+    "Minor",
+    "No",
+    "fix the error found in diagram"
+   ],
+   [
+    "2026-11-05",
+    "D003",
+    "Mei Ling Chong",
+    "M2",
+    "50 - Interface",
+    "UI / screens",
+    "CODEINSP",
+    "UT",
+    60,
+    "PR",
+    "Major",
+    "No",
+    "fix the bug in shopping cart page"
+   ],
+   [
+    "2026-10-30",
+    "D004",
+    "Harith Bin Ismail",
+    "M2",
+    "50 - Interface",
+    "UI / screens",
+    "CODE",
+    "CODE",
+    120,
+    "PR",
+    "Major",
+    "No",
+    "Fix the front-end code for better layout"
+   ],
+   [
+    "2026-11-02",
+    "D005",
+    "Harith Bin Ismail",
+    "M2",
+    "80 - Function",
+    "Order & catalogue service",
+    "CODE",
+    "CODE",
+    80,
+    "PR",
+    "Major",
+    "No",
+    "Fix shopping cart and invoice part"
+   ],
+   [
+    "2026-10-20",
+    "D006",
+    "Priya Nair",
+    "M1",
+    "10 - Documentation",
+    "SRS",
+    "PLAN",
+    "REQINSP",
+    14,
+    "PR",
+    "Minor",
+    "No",
+    "Misunderstanding on the phrase \"Joy buyers\" in non-functional requirements"
+   ]
+  ],
+  "logtest": [
+   [
+    "2026-11-16",
+    "TC001",
+    "Order entry screen",
+    "Order total sums line amounts correctly",
+    "Unit",
+    "Total equals sum of line amounts",
+    "As expected",
+    "Pass",
+    "M2",
+    "Aisyah Binti Rahman",
+    null,
+    "Yes"
+   ],
+   [
+    "2026-11-17",
+    "TC002",
+    "Catalogue screen",
+    "Order total recalculates when a quantity changes",
+    "Unit",
+    "Total updates immediately",
+    "As expected",
+    "Pass",
+    "M2",
+    "Daniel Wong Jun Hao",
+    null,
+    "Yes"
+   ],
+   [
+    "2026-11-18",
+    "TC003",
+    "Invoice & history",
+    "Zero-quantity line is rejected",
+    "Unit",
+    "Validation error shown, line not added",
+    "As expected",
+    "Pass",
+    "M2",
+    "Mei Ling Chong",
+    null,
+    "Yes"
+   ],
+   [
+    "2026-11-19",
+    "TC004",
+    "Order & catalogue service",
+    "Negative quantity is rejected",
+    "Unit",
+    "Validation error shown",
+    "As expected",
+    "Pass",
+    "M2",
+    "Harith Bin Ismail",
+    null,
+    "Yes"
+   ],
+   [
+    "2026-11-20",
+    "TC005",
+    "Local store & sync",
+    "Discount applied after tax",
+    "Unit",
+    "Invoice total matches the worked example",
+    "As expected",
+    "Pass",
+    "M2",
+    "Priya Nair",
+    null,
+    "Yes"
+   ],
+   [
+    "2026-11-21",
+    "TC006",
+    "Shared widgets & theme",
+    "Price at order time is used, not latest price",
+    "Unit",
+    "Historic price returned",
+    "As expected",
+    "Pass",
+    "M2",
+    "Aisyah Binti Rahman",
+    null,
+    "Yes"
+   ]
+  ],
+  "logai": [
+   [
+    "2026-10-27",
+    "Priya Nair",
+    "M2",
+    "order_form.dart",
+    "Form validation for quantity and item fields",
+    "GitHub Copilot",
+    "Validate quantity is a positive integer and item is selected; return a message per field",
+    60,
+    45,
+    "Daniel Wong Jun Hao",
+    "Approved with changes",
+    "Yes",
+    "Pass",
+    "PR#21",
+    "Yes"
+   ],
+   [
+    "2026-10-28",
+    "Priya Nair",
+    "M2",
+    "catalogue_list.dart",
+    "ListView.builder with lazy loading",
+    "GitHub Copilot",
+    "Build a lazy list of catalogue items with a low-stock badge",
+    40,
+    34,
+    "Mei Ling Chong",
+    "Approved",
+    "Yes",
+    "Pass",
+    "PR#22",
+    "Yes"
+   ],
+   [
+    "2026-11-05",
+    "Aisyah Binti Rahman",
+    "M2",
+    ".github/workflows/ci.yml",
+    "GitHub Actions workflow",
+    "Claude",
+    "Workflow that runs flutter analyze, flutter test and uploads a coverage report",
+    55,
+    50,
+    "Mei Ling Chong",
+    "Approved with changes",
+    "No",
+    "Not run",
+    "PR#23",
+    "Yes"
+   ],
+   [
+    "2026-11-06",
+    "Daniel Wong Jun Hao",
+    "M2",
+    "price_repository.dart",
+    "Dated price lookup",
+    "GitHub Copilot",
+    "Return the price effective on a given date from a list of dated price records",
+    45,
+    28,
+    "Harith Bin Ismail",
+    "Changes requested",
+    "Yes",
+    "Pass",
+    "PR#24",
+    "Yes"
+   ]
+  ],
+  "logclient": [
+   [
+    "2026-10-10",
+    "M1",
+    "Face-to-face",
+    1.5,
+    "All five",
+    "Encik Faizal, counter supervisor",
+    "First visit: watch how orders are taken on paper today",
+    "Scope limited to ordering and invoicing; stock control is out of scope for this semester",
+    "Harith to draft the user stories by Friday; Aisyah to send the project brief",
+    "Photos + notes in docs/meetings/m01.md",
+    "No"
+   ],
+   [
+    "2026-10-24",
+    "M1",
+    "Face-to-face",
+    2,
+    "Harith, Aisyah, Priya",
+    "Encik Faizal",
+    "Walk through the paper mock-ups of the order screen",
+    "Order lines must allow a free-text note; quantity is by box, not kg",
+    "Priya to redraw the order screen; Mei Ling to update the SRS",
+    "Signed mock-up sheets, photographed",
+    "Yes"
+   ],
+   [
+    "2026-11-07",
+    "M2",
+    "Online (Zoom/Meet)",
+    1,
+    "Harith, Daniel",
+    "Encik Faizal",
+    "Review the SRS section on pricing",
+    "Prices change weekly - the app must keep the price at order time",
+    "Daniel to change the data model to dated prices; raise a CCR",
+    "docs/meetings/m03.md",
+    "No"
+   ],
+   [
+    "2026-11-21",
+    "M2",
+    "Face-to-face",
+    2,
+    "All five",
+    "Encik Faizal, two counter staff",
+    "Demonstrate the prototype on a real device",
+    "Staff asked for a bigger font; confirmed the offline requirement is real, the shop loses signal daily",
+    "Priya to raise the font issue; Mei Ling to prioritise the offline queue",
+    "Video of the session",
+    "Yes"
+   ]
+  ],
+  "loggit": [
+   [
+    3,
+    "M1",
+    "Aisyah Binti Rahman",
+    1,
+    0,
+    0,
+    0,
+    0,
+    42,
+    11,
+    "Yes",
+    null
+   ],
+   [
+    3,
+    "M1",
+    "Daniel Wong Jun Hao",
+    1,
+    0,
+    0,
+    0,
+    0,
+    42,
+    11,
+    "Yes",
+    null
+   ],
+   [
+    3,
+    "M1",
+    "Mei Ling Chong",
+    2,
+    0,
+    0,
+    1,
+    0,
+    84,
+    22,
+    "Yes",
+    null
+   ],
+   [
+    3,
+    "M1",
+    "Harith Bin Ismail",
+    3,
+    1,
+    1,
+    1,
+    1,
+    126,
+    33,
+    "Yes",
+    null
+   ],
+   [
+    3,
+    "M1",
+    "Priya Nair",
+    1,
+    0,
+    0,
+    0,
+    0,
+    42,
+    11,
+    "Yes",
+    null
+   ],
+   [
+    4,
+    "M1",
+    "Aisyah Binti Rahman",
+    1,
+    0,
+    0,
+    0,
+    0,
+    42,
+    11,
+    "Yes",
+    null
+   ]
+  ],
+  "ccr": [
+   [
+    "CCR-01",
+    "2026-10-27",
+    "Harith Bin Ismail",
+    "Requirement",
+    "Order entry",
+    "Add a free-text note to each order line",
+    "Counter staff already write notes on the paper book; without it they will not use the app",
+    6,
+    "M2",
+    "Aisyah Binti Rahman",
+    "Approved",
+    "2026-10-29",
+    "Absorbed into the M2 plan"
+   ],
+   [
+    "CCR-02",
+    "2026-11-03",
+    "Daniel Wong Jun Hao",
+    "Design",
+    "Order & catalogue service",
+    "Replace the single price field with dated price records",
+    "Supplier prices change weekly; an invoice must use the price at order time",
+    14,
+    "M2",
+    "Aisyah Binti Rahman",
+    "Approved",
+    "2026-11-05",
+    "Pushed the catalogue work one week; schedule updated"
+   ],
+   [
+    "CCR-03",
+    "2026-11-17",
+    "Priya Nair",
+    "Requirement",
+    "Order entry",
+    "Add a Gemini parser for free-text order notes",
+    "Staff type faster than they browse; raised after the week 9 demo",
+    18,
+    "M3",
+    "Aisyah Binti Rahman",
+    "Approved",
+    "2026-11-19",
+    "Made optional with a manual fallback after the latency test"
+   ],
+   [
+    "CCR-04",
+    "2026-12-01",
+    "Harith Bin Ismail",
+    "Requirement",
+    "Order history",
+    "Show all orders rather than the last 30 days",
+    "Requested by the client at the week 11 meeting",
+    10,
+    "M3",
+    "Aisyah Binti Rahman",
+    "Deferred",
+    "2026-12-03",
+    "Deferred to post-handover; the client agreed 30 days is enough for the pilot"
+   ]
+  ],
+  "week": [
+   [
+    3,
+    "2026-10-05",
+    "M1",
+    "Yes",
+    5,
+    "Client not yet confirmed - no signed approval form",
+    "Submit the client approval form and open the repo"
+   ],
+   [
+    4,
+    "2026-10-12",
+    "M1",
+    "Yes",
+    5,
+    "Requirements still vague on pricing",
+    "Finish the SRS draft and book the mock-up review"
+   ],
+   [
+    5,
+    "2026-10-19",
+    "M1",
+    "Yes",
+    5,
+    "M1 due Saturday; SRS inspection not scheduled yet",
+    "Submit M1: proposal, SRS, charter, repo"
+   ],
+   [
+    6,
+    "2026-10-26",
+    "M2",
+    "Yes",
+    4,
+    "Daniel missed two sessions - no commits this week",
+    "Daniel to pick up the price repository and report Wednesday"
+   ],
+   [
+    7,
+    "2026-11-02",
+    "M2",
+    "Yes",
+    5,
+    "Dated-price change may not fit before M2",
+    "Finish the order screen and the catalogue service"
+   ]
+  ]
+ }
+}

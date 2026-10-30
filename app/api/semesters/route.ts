@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { semesterCreateSchema } from "@/lib/schemas/admin";
 import { created } from "@/lib/server/audit";
 import { requireLecturer } from "@/lib/server/guards";
-import { ok, parseJson, route } from "@/lib/server/http";
+import { HttpError, ok, parseJson, route } from "@/lib/server/http";
 import { MILESTONE_DEFAULTS, milestoneDueAt } from "@/lib/tsp/milestones";
 import { parseDateOnly } from "@/lib/tsp/calendar";
 
@@ -16,9 +16,11 @@ export const POST = route(async (req) => {
   const user = await requireLecturer();
   const input = await parseJson(req, semesterCreateSchema);
   const week1Monday = parseDateOnly(input.week1Monday)!;
+  const existing = await db.semester.findFirst({ where: { name: { equals: input.name.trim(), mode: "insensitive" } }, select: { id: true } });
+  if (existing) throw new HttpError(409, `A semester named "${input.name.trim()}" already exists.`, { name: ["This name is already used"] });
   const semester = await db.semester.create({
     data: {
-      name: input.name,
+      name: input.name.trim(),
       week1Monday,
       weekCount: input.weekCount,
       breakWeeks: input.breakWeeks,

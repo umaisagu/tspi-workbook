@@ -238,6 +238,14 @@ export const taskSchema = z
   .transform((v) => ({ ...v, planHours: v.planHours ?? estimatedHours(v.estSize, v.rate) ?? 0 }));
 export type TaskInput = z.output<typeof taskSchema>;
 
+/** The assigned member marks a task done (date) or not done (empty). */
+export const taskCompletionSchema = z.object({
+  completedOn: z
+    .union([dateOnlySchema, z.literal(""), z.null(), z.undefined()])
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
 // ---------- SCHEDULE ----------
 
 export const scheduleRowSchema = z.object({
