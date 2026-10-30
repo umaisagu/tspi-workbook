@@ -1,11 +1,11 @@
 import type { Phase } from "@/generated/prisma/enums";
 import { PHASES } from "./phases";
 
-/** Workbook DefectTypes sheet. */
+/** Defect type standard (Workbook v3.0, DEFECTTYPES sheet): 10-100 TSP standard, 110-150 added for TMA3084. */
 export const DEFECT_TYPES: readonly { code: number; name: string }[] = [
   { code: 10, name: "Documentation" },
   { code: 20, name: "Syntax" },
-  { code: 30, name: "Build, Package" },
+  { code: 30, name: "Build / Package" },
   { code: 40, name: "Assignment" },
   { code: 50, name: "Interface" },
   { code: 60, name: "Checking" },
@@ -13,6 +13,11 @@ export const DEFECT_TYPES: readonly { code: number; name: string }[] = [
   { code: 80, name: "Function" },
   { code: 90, name: "System" },
   { code: 100, name: "Environment" },
+  { code: 110, name: "UI / Layout" },
+  { code: 120, name: "State Management" },
+  { code: 130, name: "Performance" },
+  { code: 140, name: "Security" },
+  { code: 150, name: "AI-Generated" },
 ];
 
 export function isDefectType(code: number): boolean {

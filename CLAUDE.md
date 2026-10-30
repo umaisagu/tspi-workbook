@@ -2,8 +2,9 @@
 
 Web replacement for the TSPi Excel workbook for TMA3084 Software Engineering Lab (UNIMAS).
 Student teams (5–6) fill in TSPi forms; the lecturer monitors progress and individual contribution.
-Source of truth for form fields and formulas: `/docs` (see `docs/workbook-formulas.md`).
-If a doc conflicts with a request, ask before choosing.
+Source of truth: the lecturer's **TSPi Workbook v3.0** (`docs/workbook-v3/`, blank + worked SAMPLE), which replaces the
+2002 workbook (`docs/TSPI_WORKBOOK20020301.xls`, formulas in `docs/workbook-formulas.md`). Where v3.0 and the app differ,
+v3.0 wins (lecturer's decision); the app is being aligned in stages (see Stages). If a doc conflicts with a request, ask.
 
 ## Session start (Claude Code on the web)
 
@@ -25,6 +26,7 @@ If a doc conflicts with a request, ask before choosing.
 | Seed (dev only, wipes DB) | `npm run db:seed` — all seeded accounts use password `tspi-dev-2026`; log data is generated up to "today" (prisma/seed-logs.ts); GitHub activity is cached seed data for fictional repos (seed-github.ts) |
 | Production build | `npm run build` = `prisma generate`, deploy-target check, `prisma migrate deploy`, mark, `next build` |
 | First lecturer (production, once) | `npm run create-lecturer` |
+| Refresh Reference data | `python3 scripts/extract-reference.py docs/workbook-v3/<blank>.xlsx docs/workbook-v3/<SAMPLE>.xlsx` → `lib/reference/workbook-v3.json` |
 | Backup (off-site copy) | `npm run backup` (pg_dump of `BACKUP_DATABASE_URL`/`DIRECT_URL` to `./backups`, git-ignored) |
 
 Never run `migrate dev` or the seed against production. The seed refuses non-local hosts unless
@@ -84,7 +86,9 @@ lib/security/csp.ts     Content-Security-Policy builder (nonce per request, set 
 lib/deploy/             target.ts (environment marker rules), backup.ts (backup helpers), with tests
 lib/server/maintenance.ts  cleanup for the daily cron (old rate-limit rows, reset tokens)
 scripts/                create-lecturer.ts, deploy-target.ts (build guard), backup.ts, extract-workbook.py, db-client.ts
-docs/                   course reference material (do not edit) + workbook-formulas.md
+docs/                   course reference material (do not edit) + workbook-formulas.md; workbook-v3/ = lecturer's v3.0 workbooks
+lib/reference/          workbook-v3.json (extracted manual, standards, guidelines, SAMPLE rows) + workbook.ts (types, download list)
+app/(app)/reference     Reference page for every signed-in user; downloads via /api/reference/[workbook|sample] (signed in)
 ```
 
 - All formulas live in pure functions in `/lib/tsp`, all flag logic in `/lib/monitoring`, each with tests.
@@ -113,7 +117,9 @@ docs/                   course reference material (do not edit) + workbook-formu
   Individual forms are readable by the owner, the lecturer and the group's demonstrator.
 - **PEER** is visible only to its author and the lecturer. Students never see flags, lecturer notes,
   or others' PEER ratings.
-- TSPi roles: each held by ≤2 members; only one role shared, and only in a 6-member team; the team must keep
+- TSPi roles (v3.0, six): Team Leader, Product Owner, Development Manager, Planning Manager, Quality & Test Manager
+  (stored as `QUALITY_PROCESS_MANAGER`), Support Manager. Each role has one holder; nobody holds more than two (errors);
+  6 − team size members hold two, unassigned roles and members without a role are warnings. The team must keep
   a Team Leader (lecturer can override). One active team per student per semester. Staff accounts cannot
   be team members.
 - Registration only for `ALLOWED_EMAIL_DOMAINS` (exact domain match). Everyone registers as STUDENT;
@@ -127,7 +133,7 @@ docs/                   course reference material (do not edit) + workbook-formu
 - LOGT: delta = stop − start − interruption (minutes), computed on the server; no future dates; phase must be
   one where time is logged (not AT/PL); sessions of one member may not overlap on the same day (back-to-back is fine);
   sessions past midnight are split into two entries.
-- LOGD: number = next in the member's sequence (never reused); types 10–100 from the workbook; removal phase
+- LOGD: number = next in the member's sequence (never reused); types 10–100 (TSP) and 110–150 (v3.0 DEFECTTYPES); removal phase
   cannot be earlier than injection phase; Fix Ref. points to another of the member's defects.
 - LOGAI: code AI-001… per student; reviewer is a current teammate (not self); only the reviewer can approve
   (`POST …/logai/[rowId]/review`); editing reviewed fields or changing reviewer withdraws approval.
@@ -266,6 +272,12 @@ docs/                   course reference material (do not edit) + workbook-formu
 12. Calendar: Week 1 = Mon 21 Sep 2026, break = Week 8, M1 Wk5, M2 Wk9, M3 Wk13 (Wed 23:59 MYT),
     M4 Wk15 (Sat 2 Jan 2027 22:00 MYT).
 13. Preview deployments use a separate Neon database with test data only (never a branch of production).
+15. Workbook v3.0 (2026-10-29) replaces the 2002 workbook; v3.0 wins where they differ. Staged alignment:
+    1 ✅ Reference page + downloads, six roles, defect types 110–150; 2 existing-form fields, calendar (v3.0 has no
+    break week; dues 25 Oct, 20 Nov, 20 Dec 2026, 2 Jan 2027), roles per milestone; 3 27 phases (AIGEN, BUILD←COMPILE,
+    WT, CICD, UAT←AT) with SUMP/SUMQ rebuilt to v3.0; 4 new forms (SETUP thresholds, GOALS, STRAT, LOGCLIENT, IRTL,
+    TEAMEVAL, ASSESS, Team Charter). FORM-SI keeps sections A–K; the Team Charter becomes a team form (lecturer's choice).
+    The SAMPLE is shown on the Reference page and downloadable; it is not loaded into the database.
 14. Git: work is pushed to the session's designated branch (`claude/modest-cori-685ap0`) until told to use `main`.
 
 ## Stages
