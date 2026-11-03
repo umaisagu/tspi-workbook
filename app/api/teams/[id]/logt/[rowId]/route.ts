@@ -35,6 +35,7 @@ export const PATCH = route(async (req, { params }: RouteContext<"/api/teams/[id]
       componentId: input.componentId,
       taskId: input.taskId,
       comments: input.comments,
+      aiUsed: input.aiUsed,
       ...updated(ctx.user.userId),
     },
   });

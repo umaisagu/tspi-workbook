@@ -116,3 +116,19 @@ describe("TASK schema", () => {
     expect(taskSchema.parse({ name: "x", phase: "CODE", planHours: "1", completedOn: "" }).completedOn).toBeNull();
   });
 });
+
+describe("v3.0 LOGT / LOGD fields", () => {
+  const logt = { date: "2026-10-20", start: "09:00", stop: "10:00", interruptMin: "0", phase: "CODE" };
+  const logd = { date: "2026-10-20", type: "150", phaseInjected: "CODE", phaseRemoved: "CR", fixTimeMin: "5", description: "Validator accepted negatives" };
+  it("reads AI used? as a boolean, default No", () => {
+    expect(timeLogSchema.parse({ ...logt, aiUsed: "yes" }).aiUsed).toBe(true);
+    expect(timeLogSchema.parse(logt).aiUsed).toBe(false);
+  });
+  it("takes severity (default Minor), From AI code? and a fix reference", () => {
+    const v = defectLogSchema.parse({ ...logd, severity: "CRITICAL", fromAi: "yes", fixReference: " PR#21 " });
+    expect([v.severity, v.fromAi, v.fixReference]).toEqual(["CRITICAL", true, "PR#21"]);
+    const d = defectLogSchema.parse(logd);
+    expect([d.severity, d.fromAi, d.fixReference]).toEqual(["MINOR", false, null]);
+    expect(defectLogSchema.safeParse({ ...logd, severity: "HUGE" }).success).toBe(false);
+  });
+});

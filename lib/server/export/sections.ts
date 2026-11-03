@@ -104,10 +104,11 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Phase", width: 10 },
             { header: "Component", width: 16 },
             { header: "Task", width: 22 },
+            { header: "AI used?", width: 6 },
             { header: "Comments", width: 30 },
             { header: "Entered", width: 16 },
           ],
-          rows: rows.map(({ m, r }) => [m.name, r.date, r.week, r.start, r.stop, r.interruptMin, r.deltaMin, r.phase, r.componentName, r.taskName, r.comments, myt(r.createdAt)]),
+          rows: rows.map(({ m, r }) => [m.name, r.date, r.week, r.start, r.stop, r.interruptMin, r.deltaMin, r.phase, r.componentName, r.taskName, r.aiUsed, r.comments, myt(r.createdAt)]),
         },
       ];
     }
@@ -125,11 +126,14 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Injected", width: 10 },
             { header: "Removed", width: 10 },
             { header: "Fix (min)", width: 8, format: "int" },
-            { header: "Fix ref.", width: 7, format: "int" },
-            { header: "Description", width: 36 },
+            { header: "Severity", width: 8 },
+            { header: "From AI?", width: 6 },
+            { header: "Fix reference", width: 12 },
+            { header: "Injected while fixing no.", width: 7, format: "int" },
+            { header: "Description & root cause", width: 36 },
             { header: "Entered", width: 16 },
           ],
-          rows: rows.map(({ m, r }) => [m.name, r.number, r.date, defectTypeLabel(r.type), r.componentName, r.phaseInjected, r.phaseRemoved, r.fixTimeMin, r.fixRefNumber, r.description, myt(r.createdAt)]),
+          rows: rows.map(({ m, r }) => [m.name, r.number, r.date, defectTypeLabel(r.type), r.componentName, r.phaseInjected, r.phaseRemoved, r.fixTimeMin, r.severity.charAt(0) + r.severity.slice(1).toLowerCase(), r.fromAi, r.fixReference, r.fixRefNumber, r.description, myt(r.createdAt)]),
         },
       ];
     }

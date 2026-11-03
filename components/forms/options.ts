@@ -18,3 +18,9 @@ export const none = (label = "—"): Option => ({ value: "", label });
 export function todayString(): string {
   return formatDateOnly(localDate(new Date()));
 }
+
+/** Yes/No drop-down (Workbook v3.0), sent as "yes" / "no". */
+export const YES_NO: Option[] = [
+  { value: "no", label: "No" },
+  { value: "yes", label: "Yes" },
+];

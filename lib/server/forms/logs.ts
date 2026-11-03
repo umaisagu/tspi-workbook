@@ -26,6 +26,7 @@ export async function listTimeLogs(membershipId: string, week1Monday: Date) {
     taskId: r.taskId,
     taskName: r.task?.name ?? null,
     comments: r.comments,
+    aiUsed: r.aiUsed,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   }));
@@ -50,6 +51,9 @@ export async function listDefectLogs(membershipId: string, week1Monday: Date) {
     phaseRemoved: r.phaseRemoved,
     fixTimeMin: r.fixTimeMin,
     fixRefId: r.fixRefId,
+    severity: r.severity,
+    fromAi: r.fromAi,
+    fixReference: r.fixReference,
     fixRefNumber: r.fixRef?.number ?? null,
     description: r.description,
     createdAt: r.createdAt.toISOString(),

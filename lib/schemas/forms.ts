@@ -43,6 +43,12 @@ const optionalText = (max: number) =>
     .nullable()
     .transform((v) => (v ? v : null));
 
+/** A Yes/No select (Workbook v3.0 drop-downs) stored as a boolean. */
+const yesNo = z
+  .union([z.boolean(), z.enum(["yes", "no", ""]), z.null()])
+  .optional()
+  .transform((v) => v === true || v === "yes");
+
 const requiredText = (label: string, max: number) => z.string().trim().min(1, `Enter ${label}`).max(max);
 
 const intField = (label: string, min: number, max: number) =>
@@ -59,6 +65,7 @@ export const timeLogSchema = z
     phase: phaseSchema,
     componentId: optionalId,
     taskId: optionalId,
+    aiUsed: yesNo,
     comments: optionalText(500),
   })
   .superRefine((v, ctx) => {
@@ -81,6 +88,9 @@ export const defectLogSchema = z
     phaseRemoved: phaseSchema,
     fixTimeMin: intField("fix time in minutes", 0, 10000),
     fixRefId: optionalId,
+    severity: z.enum(["CRITICAL", "MAJOR", "MINOR", "COSMETIC"]).default("MINOR"),
+    fromAi: yesNo,
+    fixReference: optionalText(200),
     description: requiredText("a description", 1000),
   })
   .superRefine((v, ctx) => {

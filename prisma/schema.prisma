@@ -21,6 +21,14 @@ enum AppRole {
 }
 
 /// The five TSPi roles (docs/TSP_Student_Information_Sheet.md, section J).
+/// Workbook v3.0 LOGD severity (LISTS Severity).
+enum DefectSeverity {
+  CRITICAL
+  MAJOR
+  MINOR
+  COSMETIC
+}
+
 /// Workbook v3.0 TASK status (LISTS Task Status). Complete ⇔ completedOn is set.
 enum TaskStatus {
   PLANNED
@@ -408,6 +416,8 @@ model TimeLog {
   taskId       String?
   task         Task?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
   comments     String?
+  /// Workbook v3.0 LOGT "AI used?"
+  aiUsed       Boolean    @default(false)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   createdById  String?
@@ -421,25 +431,29 @@ model TimeLog {
 
 /// LOGD: Defect Recording Log. type uses the workbook's DefectTypes (10..100).
 model DefectLog {
-  id            String      @id @default(cuid())
+  id            String         @id @default(cuid())
   membershipId  String
-  membership    Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-  date          DateTime    @db.Date
+  membership    Membership     @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  date          DateTime       @db.Date
   /// Sequential per member.
   number        Int
   type          Int
   componentId   String?
-  component     Component?  @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  component     Component?     @relation(fields: [componentId], references: [id], onDelete: SetNull)
   phaseInjected Phase
   phaseRemoved  Phase
   fixTimeMin    Int
   /// Defect this fix relates to (workbook "Fix Ref.").
   fixRefId      String?
-  fixRef        DefectLog?  @relation("DefectFixRef", fields: [fixRefId], references: [id], onDelete: SetNull)
-  fixedBy       DefectLog[] @relation("DefectFixRef")
+  fixRef        DefectLog?     @relation("DefectFixRef", fields: [fixRefId], references: [id], onDelete: SetNull)
+  fixedBy       DefectLog[]    @relation("DefectFixRef")
   description   String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  /// Workbook v3.0 LOGD: severity, whether the defect came from AI-generated code, and the commit / PR that fixed it
+  severity      DefectSeverity @default(MINOR)
+  fromAi        Boolean        @default(false)
+  fixReference  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   createdById   String?
   updatedById   String?
   deletedAt     DateTime?
