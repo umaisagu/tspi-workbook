@@ -22,6 +22,8 @@ export async function listTests(teamId: string, week1Monday: Date) {
     expected: t.expected,
     actual: t.actual,
     status: t.status,
+    automated: t.automated,
+    defectRef: t.defectRef,
     date: formatDateOnly(t.date),
     week: weekOf(t.date, week1Monday),
     authorMembershipId: t.authorMembershipId,

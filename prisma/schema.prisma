@@ -21,6 +21,15 @@ enum AppRole {
 }
 
 /// The five TSPi roles (docs/TSP_Student_Information_Sheet.md, section J).
+/// Workbook v3.0 LOGAI review verdict (LISTS Review Verdict); Approved and Approved with changes count as approved.
+enum AiVerdict {
+  APPROVED
+  APPROVED_WITH_CHANGES
+  CHANGES_REQUESTED
+  REJECTED
+  PENDING
+}
+
 /// Workbook v3.0 LOGD severity (LISTS Severity).
 enum DefectSeverity {
   CRITICAL
@@ -92,6 +101,11 @@ enum TestType {
   UNIT
   WIDGET
   INTEGRATION
+  MANUAL
+  ACCEPTANCE
+  REGRESSION
+  PERFORMANCE
+  SECURITY
 }
 
 enum TestStatus {
@@ -472,16 +486,25 @@ model AiLog {
   date                 DateTime    @db.Date
   module               String
   tool                 String
-  model                String
+  model                String?
   promptSpec           String
-  outputSummary        String
-  humanRefinement      String
-  testEvidence         String
+  outputSummary        String?
+  humanRefinement      String?
+  testEvidence         String?
   prUrl                String?
   reviewerMembershipId String?
   reviewer             Membership? @relation("AiLogReviewer", fields: [reviewerMembershipId], references: [id], onDelete: SetNull)
   approved             Boolean     @default(false)
   approvedAt           DateTime?
+  /// Workbook v3.0 LOGAI: feature, lines generated / kept, tests written and their status, commit / PR, reviewer verdict.
+  /// (model, outputSummary, humanRefinement, testEvidence and prUrl are kept for entries made before v3.0.)
+  feature              String?
+  linesGenerated       Int?
+  linesKept            Int?
+  testsWritten         Boolean     @default(false)
+  testStatus           TestStatus?
+  commitRef            String?
+  verdict              AiVerdict   @default(PENDING)
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
   createdById          String?
@@ -648,6 +671,9 @@ model TestLog {
   actual             String?
   status             TestStatus @default(NOT_RUN)
   date               DateTime   @db.Date
+  /// Workbook v3.0 LOGTEST: automated test, and the LOGD defect it raised (e.g. D003).
+  automated          Boolean    @default(false)
+  defectRef          String?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   createdById        String?

@@ -102,27 +102,28 @@ export type DefectLogInput = z.infer<typeof defectLogSchema>;
 
 // ---------- LOGAI ----------
 
-export const aiLogSchema = z.object({
-  date: dateOnlySchema,
-  module: requiredText("the module or requirement ID", 200),
-  tool: requiredText("the tool (e.g. Claude, Codex)", 100),
-  model: requiredText("the exact model", 100),
-  promptSpec: requiredText("the prompt or spec", 5000),
-  outputSummary: requiredText("a summary of the output", 3000),
-  humanRefinement: requiredText("what you changed, corrected or rejected", 3000),
-  testEvidence: requiredText("the test evidence", 2000),
-  prUrl: z
-    .string()
-    .trim()
-    .optional()
-    .nullable()
-    .transform((v) => (v ? v : null))
-    .refine((v) => v === null || /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(v), "Use a GitHub pull request link"),
-  reviewerMembershipId: optionalId,
-});
+/** LOGAI (Workbook v3.0): one row per AI-assisted change that reached the repository. */
+export const aiLogSchema = z
+  .object({
+    date: dateOnlySchema,
+    module: requiredText("the file or module", 200),
+    feature: requiredText("the feature or behaviour", 300),
+    tool: requiredText("the AI tool", 100),
+    promptSpec: requiredText("the prompt (summarised)", 2000),
+    linesGenerated: intField("the lines generated", 0, 100000),
+    linesKept: intField("the lines kept after review", 0, 100000),
+    testsWritten: yesNo,
+    testStatus: z.enum(["PASS", "FAIL", "NOT_RUN"]).default("NOT_RUN"),
+    commitRef: optionalText(200),
+    reviewerMembershipId: optionalId,
+  })
+  .superRefine((v, ctx) => {
+    if (v.linesKept > v.linesGenerated) ctx.addIssue({ code: "custom", path: ["linesKept"], message: "Cannot keep more lines than were generated" });
+  });
 export type AiLogInput = z.infer<typeof aiLogSchema>;
 
-export const aiReviewSchema = z.object({ approved: z.boolean() });
+/** The reviewer's verdict on a LOGAI entry. */
+export const aiReviewSchema = z.object({ verdict: z.enum(["APPROVED", "APPROVED_WITH_CHANGES", "CHANGES_REQUESTED", "REJECTED", "PENDING"]) });
 
 // ---------- FORM-SI ----------
 
@@ -338,11 +339,13 @@ export const testLogSchema = z.object({
     .transform((v) => (v ? v : null)),
   module: requiredText("the module or requirement ID", 200),
   description: requiredText("what the test checks", 1000),
-  type: z.enum(["UNIT", "WIDGET", "INTEGRATION"]),
+  type: z.enum(["UNIT", "WIDGET", "INTEGRATION", "MANUAL", "ACCEPTANCE", "REGRESSION", "PERFORMANCE", "SECURITY"]),
   expected: requiredText("the expected result", 1000),
   actual: optionalText(1000),
   status: z.enum(["PASS", "FAIL", "BLOCKED", "NOT_RUN"]).default("NOT_RUN"),
   date: dateOnlySchema,
+  automated: yesNo,
+  defectRef: optionalText(40),
   /** Team Leader only: record a test for another member. */
   authorMembershipId: optionalId,
 });

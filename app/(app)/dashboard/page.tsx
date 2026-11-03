@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   const { planning } = s;
   const week = planning.currentWeek;
   const [reviewsWaiting, weekReports] = await Promise.all([
-    db.aiLog.count({ where: { reviewerMembershipId: me, approved: false, deletedAt: null } }),
+    db.aiLog.count({ where: { reviewerMembershipId: me, verdict: "PENDING", deletedAt: null } }),
     isTeamLeaderOf(user, team.id) ? loadWeekReports(team.id, null) : Promise.resolve(null),
   ]);
 

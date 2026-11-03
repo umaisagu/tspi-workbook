@@ -62,6 +62,8 @@ export async function seedTeamForms(
           ...t,
           actual: status === "PASS" ? t.expected : status === "FAIL" ? "Unexpected result; see defect log" : null,
           status,
+          automated: r() < 0.8,
+          defectRef: status === "FAIL" ? "#1" : null,
           date,
           createdAt: at(myTime(date, 20, 0)),
           updatedAt: at(myTime(date, 20, 0)),

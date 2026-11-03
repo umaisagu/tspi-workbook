@@ -7,6 +7,7 @@ import { defectTypeLabel } from "@/lib/tsp/defects";
 import { PEER_CRITERIA, peerTotal } from "@/lib/tsp/peer";
 import { TSPI_ROLES } from "@/lib/tsp/roles";
 import { taskStatusLabel } from "@/lib/tsp/tasks";
+import { keepRate, verdictLabel } from "@/lib/tsp/ai-log";
 import { formatDateOnly } from "@/lib/tsp/calendar";
 import { reportWeeks, submissionStatus, weekReportDueAt, type WeekReport } from "@/lib/tsp/week";
 import { listAiLogs, listDefectLogs, listTimeLogs } from "@/lib/server/forms/logs";
@@ -146,17 +147,40 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Author", width: 18 },
             { header: "Code", width: 8 },
             { header: "Date", width: 11 },
-            { header: "Module", width: 14 },
-            { header: "Tool / model", width: 16 },
-            { header: "Prompt / spec", width: 30 },
-            { header: "Output summary", width: 30 },
-            { header: "Human refinement", width: 26 },
-            { header: "Test evidence", width: 22 },
-            { header: "PR", width: 20 },
+            { header: "File / module", width: 14 },
+            { header: "Feature", width: 22 },
+            { header: "AI tool", width: 12 },
+            { header: "Prompt (summarised)", width: 30 },
+            { header: "Lines gen.", width: 7, format: "int" },
+            { header: "Lines kept", width: 7, format: "int" },
+            { header: "Keep %", width: 7, format: "pct" },
             { header: "Reviewer", width: 16 },
-            { header: "Approved", width: 9 },
+            { header: "Verdict", width: 14 },
+            { header: "Tests?", width: 6 },
+            { header: "Test status", width: 8 },
+            { header: "Commit / PR", width: 14 },
+            { header: "Approved?", width: 7 },
+            { header: "Notes (before v3.0)", width: 30 },
           ],
-          rows: rows.map((r) => [r.authorName, r.code, r.date, r.module, [r.tool, r.model].filter(Boolean).join(" / "), r.promptSpec, r.outputSummary, r.humanRefinement, r.testEvidence, r.prUrl, r.reviewerName, r.approved]),
+          rows: rows.map((r) => [
+            r.authorName,
+            r.code,
+            r.date,
+            r.module,
+            r.feature,
+            r.tool,
+            r.promptSpec,
+            r.linesGenerated,
+            r.linesKept,
+            keepRate(r.linesGenerated, r.linesKept),
+            r.reviewerName,
+            verdictLabel(r.verdict),
+            r.testsWritten,
+            r.testStatus,
+            r.commitRef ?? r.prUrl,
+            r.approved,
+            [r.model, r.outputSummary, r.humanRefinement, r.testEvidence].filter(Boolean).join(" · "),
+          ]),
         },
       ];
     }
@@ -307,9 +331,11 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Expected", width: 22 },
             { header: "Actual", width: 22 },
             { header: "Status", width: 9 },
-            { header: "Author", width: 16 },
+            { header: "Tester", width: 16 },
+            { header: "Defect ref", width: 8 },
+            { header: "Automated?", width: 7 },
           ],
-          rows: rows.map((r) => [r.testCode, r.date, r.module, r.description, r.type, r.expected, r.actual, r.status, r.authorName]),
+          rows: rows.map((r) => [r.testCode, r.date, r.module, r.description, r.type, r.expected, r.actual, r.status, r.authorName, r.defectRef, r.automated]),
         },
       ];
     }

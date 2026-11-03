@@ -39,23 +39,24 @@ describe("LOGD schema", () => {
 describe("LOGAI schema", () => {
   const base = {
     date: "2026-10-28",
-    module: "FR-03 Order Summary",
-    tool: "Claude",
-    model: "claude-sonnet",
-    promptSpec: "Spec...",
-    outputSummary: "Screen and route",
-    humanRefinement: "Renamed widgets, removed unused state",
-    testEvidence: "widget_test order_summary passes",
+    module: "order_form.dart",
+    feature: "Form validation for quantity and item fields",
+    tool: "GitHub Copilot",
+    promptSpec: "Validate quantity is a positive integer",
+    linesGenerated: "60",
+    linesKept: "45",
+    testsWritten: "yes",
+    testStatus: "PASS",
   };
-  it("accepts an entry without a PR yet", () => {
-    expect(aiLogSchema.parse(base).prUrl).toBeNull();
+  it("accepts a v3.0 entry and coerces numbers", () => {
+    const v = aiLogSchema.parse(base);
+    expect([v.linesGenerated, v.linesKept, v.testsWritten, v.commitRef]).toEqual([60, 45, true, null]);
   });
-  it("requires a GitHub PR link when given", () => {
-    expect(aiLogSchema.safeParse({ ...base, prUrl: "https://example.com/x" }).success).toBe(false);
-    expect(aiLogSchema.safeParse({ ...base, prUrl: "https://github.com/org/repo/pull/12" }).success).toBe(true);
+  it("cannot keep more lines than were generated", () => {
+    expect(aiLogSchema.safeParse({ ...base, linesKept: "61" }).success).toBe(false);
   });
-  it("requires the human refinement", () => {
-    expect(aiLogSchema.safeParse({ ...base, humanRefinement: " " }).success).toBe(false);
+  it("requires the feature", () => {
+    expect(aiLogSchema.safeParse({ ...base, feature: " " }).success).toBe(false);
   });
 });
 

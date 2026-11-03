@@ -77,7 +77,14 @@ function aiRow(
     date: formatDateOnly(r.date),
     week: weekOf(r.date, week1Monday),
     module: r.module,
+    feature: r.feature,
     tool: r.tool,
+    linesGenerated: r.linesGenerated,
+    linesKept: r.linesKept,
+    testsWritten: r.testsWritten,
+    testStatus: r.testStatus,
+    commitRef: r.commitRef,
+    verdict: r.verdict,
     model: r.model,
     promptSpec: r.promptSpec,
     outputSummary: r.outputSummary,
@@ -104,7 +111,7 @@ export async function listAiLogs(membershipId: string, week1Monday: Date) {
 export async function listAiReviewRequests(reviewerMembershipId: string, week1Monday: Date) {
   const rows = await db.aiLog.findMany({
     where: { reviewerMembershipId, deletedAt: null },
-    orderBy: [{ approved: "asc" }, { date: "desc" }],
+    orderBy: [{ verdict: "desc" }, { date: "desc" }],
     include: aiInclude,
   });
   return rows.map((r) => aiRow(r, week1Monday));

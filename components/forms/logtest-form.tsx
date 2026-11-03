@@ -5,7 +5,7 @@ import { testLogSchema } from "@/lib/schemas/forms";
 import { testSummary } from "@/lib/tsp/test-log";
 import { Badge } from "@/components/ui/card";
 import { LogTable, type Option } from "./log-table";
-import { none, todayString } from "./options";
+import { YES_NO, none, todayString } from "./options";
 
 const STATUS: Record<string, { label: string; tone: "green" | "red" | "amber" | "slate" }> = {
   PASS: { label: "Pass", tone: "green" },
@@ -17,6 +17,11 @@ const TYPES: Option[] = [
   { value: "UNIT", label: "Unit" },
   { value: "WIDGET", label: "Widget" },
   { value: "INTEGRATION", label: "Integration" },
+  { value: "MANUAL", label: "Manual" },
+  { value: "ACCEPTANCE", label: "Acceptance" },
+  { value: "REGRESSION", label: "Regression" },
+  { value: "PERFORMANCE", label: "Performance" },
+  { value: "SECURITY", label: "Security" },
 ];
 
 /** LOGTEST: every member records their own test cases; the Team Leader can edit any. */
@@ -61,9 +66,11 @@ export function LogtestForm({
           { name: "date", label: "Date", type: "date" },
           { name: "type", label: "Type", type: "select", options: TYPES },
           { name: "status", label: "Status", type: "select", options: Object.entries(STATUS).map(([value, s]) => ({ value, label: s.label })) },
-          { name: "module", label: "Module / requirement ID", type: "text", wide: true },
+          { name: "module", label: "Module / screen", type: "text", wide: true },
+          { name: "automated", label: "Automated?", type: "select", options: YES_NO },
+          { name: "defectRef", label: "Defect ref (LOGD)", type: "text", placeholder: "e.g. #3 or D003", hint: "When the test raised a defect" },
           ...(isLeader ? [{ name: "authorMembershipId", label: "Author", type: "select" as const, options: [none("Me"), ...members], wide: true }] : []),
-          { name: "description", label: "Description", type: "textarea" },
+          { name: "description", label: "What is being tested", type: "textarea" },
           { name: "expected", label: "Expected result", type: "textarea" },
           { name: "actual", label: "Actual result", type: "textarea" },
         ]}
@@ -74,6 +81,8 @@ export function LogtestForm({
           status: "NOT_RUN",
           module: rows.at(-1)?.module ?? "",
           authorMembershipId: "",
+          automated: rows.at(-1)?.automated ? "yes" : "no",
+          defectRef: "",
           description: "",
           expected: "",
           actual: "",
@@ -85,6 +94,8 @@ export function LogtestForm({
           status: r.status,
           module: r.module,
           authorMembershipId: r.authorMembershipId,
+          automated: r.automated ? "yes" : "no",
+          defectRef: r.defectRef ?? "",
           description: r.description,
           expected: r.expected,
           actual: r.actual ?? "",
@@ -112,7 +123,9 @@ export function LogtestForm({
           { key: "desc", label: "Description", render: (r) => <span className="line-clamp-2 max-w-xs">{r.description}</span> },
           { key: "type", label: "Type", render: (r) => TYPES.find((t) => t.value === r.type)?.label },
           { key: "status", label: "Status", render: (r) => <Badge tone={STATUS[r.status]!.tone}>{STATUS[r.status]!.label}</Badge> },
-          { key: "author", label: "Author", render: (r) => r.authorName },
+          { key: "auto", label: "Auto?", render: (r) => (r.automated ? "Yes" : "No") },
+          { key: "defect", label: "Defect", render: (r) => r.defectRef ?? "—" },
+          { key: "author", label: "Tester", render: (r) => r.authorName },
         ]}
       />
     </div>
