@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { FormType } from "@/generated/prisma/enums";
 import { Alert, Button, Input, sendJson } from "@/components/ui/form";
 
-const FORMS: FormType[] = ["SI", "LOGT", "LOGD", "LOGAI", "PEER", "TASK", "SCHEDULE", "LOGTEST", "WEEK", "SUMS", "SUMP", "SUMQ", "SUMTASK", "CCR"];
+const FORMS: FormType[] = ["SI", "LOGT", "LOGD", "LOGAI", "PEER", "TASK", "SCHEDULE", "LOGTEST", "WEEK", "SUMS", "SUMP", "SUMQ", "SUMTASK", "MYSUM", "CCR"];
 
 /** Converts an instant to a value for <input type="datetime-local"> in Malaysia time (UTC+8). */
 function toLocalInput(iso: string): string {

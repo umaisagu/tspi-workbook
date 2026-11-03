@@ -42,75 +42,81 @@ export function PlanActualTable({ head, rows, total }: { head: string[]; rows: R
   );
 }
 
-/** SUMP: Plan Summary (computed). */
+/** SUMP: Plan Summary (Workbook v3.0). Plan time from TASK, planned defects computed (or typed on SUMQ), actuals from the logs. */
 export function SumpView({ sump }: { sump: Sump }) {
-  const { plan, actual } = sump.size;
-  const sizeRows: [string, number, number][] = [
-    ["Total requirements pages (SRS)", plan.reqPages, actual.reqPages],
-    ["Total HLD pages (SDS)", plan.hldPages, actual.hldPages],
-    ["Total detailed design lines", plan.dldLines, actual.dldLines],
-    ["Base LOC (B)", plan.loc.base, actual.loc.base],
-    ["Deleted LOC (D)", plan.loc.deleted, actual.loc.deleted],
-    ["Modified LOC (M)", plan.loc.modified, actual.loc.modified],
-    ["Added LOC (A)", plan.loc.added, actual.loc.added],
-    ["Reused LOC (R)", plan.loc.reused, actual.loc.reused],
-    ["New and changed LOC (N)", plan.loc.newAndChanged, actual.loc.newAndChanged],
-    ["Total LOC (T)", plan.loc.total, actual.loc.total],
-    ["Total new reuse LOC", plan.loc.newReuse, actual.loc.newReuse],
+  const z = sump.size;
+  const sizeRows: [string, { plan: number; actual: number }][] = [
+    ["Total requirements pages (SRS)", z.srsPages],
+    ["Total design pages (SDD)", z.sddPages],
+    ["New & changed Dart LOC (N)", z.newAndChanged],
+    ["Total Dart LOC (T)", z.total],
+    ["Reused Dart LOC (R)", z.reused],
+    ["Screens delivered", z.screens],
+    ["Reusable widgets built", z.widgets],
   ];
-  const label = (p: string) => `${phaseName(p as Parameters<typeof phaseName>[0])}`;
+  const label = (p: Parameters<typeof phaseName>[0]) => `${p} — ${phaseName(p)}`;
+  const s = sump.summary;
   return (
     <div className="space-y-5">
       <div className="grid gap-5 xl:grid-cols-2 [&>*]:min-w-0">
         <Card title="Program size">
-          <PlanActualTable head={["", "Plan", "Actual"]} rows={sizeRows.map(([l, p, a]) => [l, p, a])} />
+          <PlanActualTable head={["", "Plan", "Actual"]} rows={sizeRows.map(([l, v]) => [l, num(v.plan, 0), num(v.actual, 0)])} />
         </Card>
-        <Card title="Summary">
+        <Card title="Summary measures">
           <PlanActualTable
             head={["", "Plan", "Actual"]}
             rows={[
-              ["LOC / hour (N&C ÷ total hours)", num(sump.summary.locPerHour.plan, 2), num(sump.summary.locPerHour.actual, 2)],
-              ["CPI (plan ÷ actual hours)", "", num(sump.summary.cpi.actual, 2)],
-              ["% Reuse (R ÷ T)", pct(sump.summary.reusePct.plan), pct(sump.summary.reusePct.actual)],
-              ["% New reuse (new reuse ÷ N)", pct(sump.summary.newReusePct.plan), pct(sump.summary.newReusePct.actual)],
+              ["LOC per hour", num(s.locPerHour.plan, 2), num(s.locPerHour.actual, 2)],
+              ["Cost performance index (CPI)", "", num(s.cpi.actual, 2)],
+              ["Defects per KLOC (development)", num(s.defectsPerKloc.plan, 1), num(s.defectsPerKloc.actual, 1)],
+              ["Hours per defect removed", num(s.hoursPerDefect.plan, 2), num(s.hoursPerDefect.actual, 2)],
+              ["% of code that is AI-assisted", "", pct(s.aiShare.actual)],
+              ["Defects traced to AI-generated code", "", s.defectsFromAi ?? "—"],
+              ["Client acceptance defects", "", s.acceptanceDefects],
             ]}
           />
         </Card>
       </div>
       <Card title="Time in phase (hours)">
         <PlanActualTable
-          head={["Phase", "Plan", "Actual", "Actual %"]}
-          rows={sump.time.map((r) => [label(r.phase), num(r.plan), num(r.actual), pct(r.actualPct)])}
-          total={["Total", num(sump.timeTotal.plan), num(sump.timeTotal.actual), sump.timeTotal.actual ? "100.0%" : "—"]}
+          head={["Phase", "Plan", "Actual", "Actual %", "Plan %"]}
+          rows={sump.time.map((r) => [label(r.phase), num(r.plan), num(r.actual), pct(r.actualPct), pct(r.planPct)])}
+          total={["Total", num(sump.timeTotal.plan), num(sump.timeTotal.actual), sump.timeTotal.actual ? "100.0%" : "—", sump.timeTotal.plan ? "100.0%" : "—"]}
         />
       </Card>
       <div className="grid gap-5 xl:grid-cols-2 [&>*]:min-w-0">
         <Card title="Defects injected">
           <PlanActualTable
             head={["Phase", "Plan", "Actual", "Actual %"]}
-            rows={sump.injected.map((r) => [label(r.phase), num(r.plan), r.actual, pct(r.actualPct)])}
+            rows={[...sump.injected.map((r) => [label(r.phase), num(r.plan), r.actual, pct(r.actualPct)])]}
             total={["Total development", num(sump.injectedTotal.plan), sump.injectedTotal.actual, ""]}
+          />
+          <PlanActualTable
+            head={["After development", "Plan", "Actual"]}
+            rows={[
+              ["UAT — injected in client acceptance test", "", sump.injectedLater.uat],
+              ["PL — injected after release", "", sump.injectedLater.pl],
+            ]}
           />
         </Card>
         <Card title="Defects removed">
           <PlanActualTable
             head={["Phase", "Plan", "Actual", "Actual %"]}
-            rows={[
-              ...sump.removed.map((r) => [label(r.phase), num(r.plan), r.actual, pct(r.actualPct)]),
-            ]}
+            rows={sump.removed.map((r) => [label(r.phase), num(r.plan), r.actual, pct(r.actualPct)])}
             total={["Total development", num(sump.removedTotal.plan), sump.removedTotal.actual, ""]}
           />
           <PlanActualTable
             head={["After development", "Plan", "Actual"]}
             rows={[
-              ["Acceptance Test", num(sump.acceptanceTest.plan), sump.acceptanceTest.actual],
-              ["Product Life", num(sump.productLife.plan), sump.productLife.actual],
+              ["UAT — removed in client acceptance test", num(sump.removedLater.uat.plan), sump.removedLater.uat.actual],
+              ["PL — removed after release", num(sump.removedLater.pl.plan), sump.removedLater.pl.actual],
             ]}
           />
         </Card>
       </div>
       <p className="text-xs text-slate-500">
-        Plan time comes from TASK, actual time from LOGT, actual defects from LOGD, sizes from SUMS. Planned defects use the SUMQ plan injection rates and yields.
+        Plan time comes from TASK, actual time from LOGT, actual defects from LOGD, sizes from SUMS, AI lines from LOGAI. Planned defects are computed from the
+        SUMQ plan (injection rate × plan hours, then each phase&apos;s yield of the defects present) unless typed there.
       </p>
     </div>
   );

@@ -93,6 +93,8 @@ export function milestoneCompletion(input: CompletionInput) {
     if (required.has("LOGT")) forms.push({ form: "LOGT", status: entriesStatus(m.logt, dueAt, now) });
     if (required.has("LOGD")) forms.push({ form: "LOGD", status: entriesStatus(m.logd, dueAt, now) });
     if (required.has("LOGAI")) forms.push({ form: "LOGAI", status: entriesStatus(m.logai, dueAt, now) });
+    // MYSUM is computed from the member's own logs: it follows their LOGT.
+    if (required.has("MYSUM")) forms.push({ form: "MYSUM", status: entriesStatus(m.logt, dueAt, now) });
     if (required.has("PEER")) forms.push({ form: "PEER", status: submittedStatus(m.peerSubmittedAt, dueAt, now) });
     return { memberId: m.memberId, forms };
   });

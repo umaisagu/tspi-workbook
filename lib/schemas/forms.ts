@@ -216,7 +216,7 @@ const optionalNumber = (label: string, min: number, max: number) =>
     .optional()
     .transform((v) => (v === "" || v === null || v === undefined ? null : v));
 
-export const sizeMeasureSchema = z.enum(["TEXT_PAGES", "REQ_PAGES", "HLD_PAGES", "DLD_LINES", "LOC"]);
+export const sizeMeasureSchema = z.enum(["TEXT_PAGES", "REQ_PAGES", "HLD_PAGES", "DLD_LINES", "LOC", "SCREENS", "WIDGETS", "API_ENDPOINTS", "TEST_CASES"]);
 
 export const taskStatusSchema = z.enum(["PLANNED", "IN_PROGRESS", "COMPLETE", "CARRIED_OVER", "CANCELLED"]);
 
@@ -310,20 +310,41 @@ const optionalRate = z
   .optional()
   .transform((v) => (v === "" || v === null || v === undefined ? null : v));
 
-/** SUMQ plan inputs per phase: defects injected per hour, and phase yield (0–1). */
-export const qualityPlanSchema = z.object({
-  reset: z.boolean().optional(),
-  rows: z
-    .array(
-      z.object({
-        phase: phaseSchema,
-        planInjectionRate: optionalRate,
-        planYield: optionalRate.refine((v) => v === null || v <= 1, "Yield is a fraction between 0 and 1"),
-      }),
-    )
-    .max(30)
-    .default([]),
-});
+const optionalCount = z
+  .union([z.literal(""), z.null(), z.coerce.number().min(0, "Cannot be negative").max(100000)])
+  .optional()
+  .transform((v) => (v === "" || v === null || v === undefined ? null : v));
+
+/**
+ * Quality plan per phase. `part: "rates"` (SUMQ: defects injected per hour, phase yield 0–1, and the CI coverage 0–1) is
+ * edited by the Team Leader or the Quality & Test Manager; `part: "defects"` (SUMP: planned defects typed over the computed
+ * ones) by the Team Leader or the Planning Manager. `reset` clears that part only.
+ */
+export const qualityPlanSchema = z.discriminatedUnion("part", [
+  z.object({
+    part: z.literal("rates"),
+    reset: z.boolean().optional(),
+    coverage: optionalRate.refine((v) => v === null || v <= 1, "Coverage is a fraction between 0 and 1"),
+    rows: z
+      .array(
+        z.object({
+          phase: phaseSchema,
+          planInjectionRate: optionalRate,
+          planYield: optionalRate.refine((v) => v === null || v <= 1, "Yield is a fraction between 0 and 1"),
+        }),
+      )
+      .max(30)
+      .default([]),
+  }),
+  z.object({
+    part: z.literal("defects"),
+    reset: z.boolean().optional(),
+    rows: z
+      .array(z.object({ phase: phaseSchema, plannedInjected: optionalCount, plannedRemoved: optionalCount }))
+      .max(30)
+      .default([]),
+  }),
+]);
 
 // ---------- LOGTEST ----------
 
@@ -444,3 +465,20 @@ export const flagReviewSchema = z.object({
 export const noteSchema = z
   .object({ teamId: optionalId, membershipId: optionalId, body: requiredText("the note", 4000) })
   .refine((v) => !!v.teamId !== !!v.membershipId, { path: ["body"], message: "A note is about a team or a member" });
+
+// ---------- MYSUMP size contribution ----------
+
+const optionalSize = z
+  .union([z.literal(""), z.null(), z.coerce.number().int("Whole numbers only").min(0, "Cannot be negative").max(1_000_000)])
+  .optional()
+  .transform((v) => (v === "" || v === null || v === undefined ? null : v));
+
+/** Member workbook MYSUMP "My Size Contribution" (plan and actual), typed by the member. */
+export const memberSizeSchema = z.object({
+  planLoc: optionalSize,
+  actLoc: optionalSize,
+  planPages: optionalSize,
+  actPages: optionalSize,
+  planScreens: optionalSize,
+  actScreens: optionalSize,
+});

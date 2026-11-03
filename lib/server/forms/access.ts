@@ -5,6 +5,8 @@ import {
   activeMembershipIn,
   canReadPeer,
   canEditIndividualForm,
+  canEditQualityPlan,
+  canEditSizePlan,
   canEditTaskPlan,
   canEditTeamForms,
   canReadIndividualForm,
@@ -65,6 +67,20 @@ export async function requireTeamForm(teamId: string, mode: "read" | "write"): P
   if (!canReadTeamForms(user, team)) throw notFound("Team");
   if (mode === "write" && !canEditTeamForms(user, team)) throw forbidden();
   return { user, team };
+}
+
+/** SUMS sizes and SUMP typed plan: the Team Leader or the Planning Manager. */
+export async function requireSizePlan(teamId: string): Promise<TeamContext> {
+  const ctx = await requireTeamForm(teamId, "read");
+  if (!canEditSizePlan(ctx.user, ctx.team)) throw forbidden();
+  return ctx;
+}
+
+/** SUMQ plan and CI coverage: the Team Leader or the Quality & Test Manager. */
+export async function requireQualityPlan(teamId: string): Promise<TeamContext> {
+  const ctx = await requireTeamForm(teamId, "read");
+  if (!canEditQualityPlan(ctx.user, ctx.team)) throw forbidden();
+  return ctx;
 }
 
 /** TASK plan changes: the Team Leader or the Planning Manager. */

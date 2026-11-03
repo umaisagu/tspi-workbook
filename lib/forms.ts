@@ -15,6 +15,12 @@ export const FORM_INFO: Record<FormType, { slug: string; title: string; descript
   SUMP: { slug: "sump", title: "SUMP · Plan Summary", description: "Size, time and defects per phase", individual: false },
   SUMQ: { slug: "sumq", title: "SUMQ · Quality Summary", description: "Defect density, yields and quality ratios", individual: false },
   SUMTASK: { slug: "sumtask", title: "SUMTASK · Task Summary", description: "Task roll-up from TASK and LOGT", individual: false },
+  MYSUM: {
+    slug: "mysum",
+    title: "MYSUMP / MYSUMQ · My Plan and Quality Summary",
+    description: "Your own time, defects and review discipline, from your logs",
+    individual: true,
+  },
   CCR: { slug: "ccr", title: "CCR · Configuration Change Request", description: "Change requests (optional)", individual: false },
 };
 
@@ -25,6 +31,7 @@ export const AVAILABLE_FORMS: FormType[] = [
   "LOGD",
   "LOGAI",
   "PEER",
+  "MYSUM",
   "TASK",
   "SCHEDULE",
   "LOGTEST",

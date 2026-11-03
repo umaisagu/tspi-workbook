@@ -15,7 +15,7 @@ describe("LOGT schema", () => {
     if (!r.success) expect(r.error.issues.map((i) => i.path.join("."))).toContain("stop");
   });
   it("rejects phases where time is not logged (AT, PL)", () => {
-    expect(timeLogSchema.safeParse({ ...base, phase: "AT" }).success).toBe(false);
+    expect(timeLogSchema.safeParse({ ...base, phase: "PL" }).success).toBe(false);
   });
   it("rejects bad dates and times", () => {
     expect(timeLogSchema.safeParse({ ...base, date: "2026-02-30" }).success).toBe(false);

@@ -10,6 +10,8 @@ import {
   canEditOwnTeamRow,
   canEditScheduleRow,
   canEditTaskPlan,
+  canEditSizePlan,
+  canEditQualityPlan,
   canEditTeamForms,
   canReadTeamForms,
   isStaff,
@@ -28,9 +30,11 @@ import { ScheduleForm } from "@/components/forms/schedule-form";
 import { SumTaskView } from "@/components/forms/sumtask-view";
 import { SumsForm } from "@/components/forms/sums-form";
 import { SumpView } from "@/components/forms/sump-view";
+import { MySummaryView } from "@/components/forms/my-summary-view";
+import { loadPersonalSummary } from "@/lib/server/forms/personal";
 import { SumqView } from "@/components/forms/sumq-view";
 import { ScopePicker } from "@/components/forms/scope-picker";
-import { QualityPlanEditor } from "@/components/forms/quality-plan-editor";
+import { PlannedDefectsEditor, QualityPlanEditor } from "@/components/forms/quality-plan-editor";
 import { loadSumpSumq, loadSums } from "@/lib/server/forms/quality";
 import { PlanningCharts } from "@/components/charts/planning-charts";
 import { AVAILABLE_FORMS, FORM_INFO, formFromSlug } from "@/lib/forms";
@@ -160,6 +164,8 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
         )}
       </div>
     );
+  } else if (form === "MYSUM") {
+    body = <MySummaryView teamId={teamId} data={await loadPersonalSummary(ctx.ownerMembershipId)} canEdit={ctx.canEdit} />;
   } else if (form === "PEER") {
     const peer = await loadPeer(teamId, ctx.ownerMembershipId);
     const requested = typeof sp.milestone === "string" ? sp.milestone : null;
@@ -318,7 +324,7 @@ async function TeamFormPage({
     const sums = await loadSums(team.id);
     body = (
       <div className="space-y-3">
-        <SumsForm teamId={team.id} rows={sums.rows} canEdit={canEdit} />
+        <SumsForm teamId={team.id} rows={sums.rows} canEdit={canEditSizePlan(user, team)} />
         <p className="text-xs text-slate-500">
           B/D/M/A/R = base, deleted, modified, added, reused. N&amp;C = modified + added; Total = base − deleted + added + reused. Not linked to a
           component: {sums.unassigned.hours} h logged, {sums.unassigned.defects} defects. Components are added on the Team page.
@@ -331,13 +337,32 @@ async function TeamFormPage({
       <div className="space-y-5">
         <ScopePicker scopes={q.scopes} current={q.scope} />
         {form === "SUMP" ? (
-          <SumpView sump={q.sump} />
+          <>
+            <SumpView sump={q.sump} />
+            {q.scope === null && (
+              <Card title="Planned defects (plan inputs)">
+                <p className="mb-3 text-xs text-slate-500">
+                  Computed from the SUMQ plan (grey). Type a value to replace the computed one for that phase; leave it empty to keep it computed.
+                </p>
+                <PlannedDefectsEditor teamId={team.id} typed={q.typed} computed={q.computedPlanned} canEdit={canEditSizePlan(user, team)} />
+              </Card>
+            )}
+          </>
         ) : (
           <>
             <SumqView sumq={q.sumq} isSystem={q.scope === null} />
-            <Card title="Quality plan (inputs)">
-              <QualityPlanEditor teamId={team.id} rates={q.planInjectionRate} yields={q.planYield} usingDefaults={q.usingDefaults} canEdit={canEdit} />
-            </Card>
+            {q.scope === null && (
+              <Card title="Quality plan (inputs)">
+                <QualityPlanEditor
+                  teamId={team.id}
+                  rates={q.planInjectionRate}
+                  yields={q.planYield}
+                  coverage={q.coverage}
+                  usingDefaults={q.usingDefaults}
+                  canEdit={canEditQualityPlan(user, team)}
+                />
+              </Card>
+            )}
           </>
         )}
       </div>
@@ -346,10 +371,12 @@ async function TeamFormPage({
   const readOnly =
     form === "SUMTASK"
       ? "computed from TASK and LOGT"
-      : form === "SUMP"
-        ? "computed"
-        : form === "SCHEDULE" || form === "LOGTEST" || form === "CCR"
-          ? null
+      : form === "SUMP" || form === "SUMQ" || form === "SCHEDULE" || form === "LOGTEST" || form === "CCR"
+        ? null
+        : form === "SUMS"
+          ? canEditSizePlan(user, team)
+            ? null
+            : "read-only"
           : !canEdit
             ? "read-only"
             : null;

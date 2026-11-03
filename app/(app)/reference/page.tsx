@@ -6,7 +6,6 @@ import { AVAILABLE_FORMS, FORM_INFO } from "@/lib/forms";
 import { REFERENCE_FILES, WORKBOOK } from "@/lib/reference/workbook";
 import { currentTeamFor } from "@/lib/server/teams";
 import { requirePageUser } from "@/lib/server/viewer";
-import { PHASES } from "@/lib/tsp/phases";
 import { deltaMinutes, parseClock } from "@/lib/tsp/time";
 import { Badge, Card, PageHeader } from "@/components/ui/card";
 import { RefTable } from "@/components/reference/ref-table";
@@ -42,8 +41,8 @@ const MEMBER_SHEETS: Record<string, { label: string; form?: FormType; href?: str
   LOGD: { label: "LOGD", form: "LOGD", note: "is yours alone." },
   LOGTEST: { label: "LOGTEST", form: "LOGTEST", note: "is shared by the team; each case records its author." },
   LOGAI: { label: "LOGAI", form: "LOGAI", note: "is yours alone; a teammate approves each entry." },
-  MYSUMP: { label: "SUMP", form: "SUMP", note: "shows the team and each component; a personal plan summary is coming to the app." },
-  MYSUMQ: { label: "SUMQ", form: "SUMQ", note: "shows the team and each component; a personal quality summary is coming to the app." },
+  MYSUMP: { label: "MYSUM", form: "MYSUM", note: "is computed from your own tasks and logs; type your size contribution there." },
+  MYSUMQ: { label: "MYSUM", form: "MYSUM", note: "shows your own measures, guidelines and verdicts on the same page." },
   EXPORT: { label: "Dashboard", href: "/dashboard", note: "shows your hours, tasks and share of the team's work. Nothing to paste." },
 };
 
@@ -54,7 +53,6 @@ export default async function ReferencePage() {
   const user = await requirePageUser();
   const current = await currentTeamFor(user);
   const teamId = current?.team.id;
-  const appPhases = new Set<string>(PHASES.map((p) => p.code));
   const s = WORKBOOK.sample;
   const m = WORKBOOK.manual;
 
@@ -358,15 +356,14 @@ export default async function ReferencePage() {
       <section id="phases" className="scroll-mt-4">
         <Card title="Process phase standard">
           <p className="mb-3 text-sm text-slate-600">
-            Use the code exactly as it appears. Phases marked <Badge tone="amber">coming</Badge> (AIGEN, BUILD, WT, CICD, UAT) are being added to the
-            app; until then log BUILD as COMPILE and UAT as AT, and AIGEN, WT and CICD work under CODE, UT and IT.
+            Use the code exactly as it appears. The app uses the same 27 phases; entries made before v3.0 under COMPILE and AT now read BUILD and UAT.
           </p>
           <RefTable
             caption="Phases"
             head={["Code", "Phase", "Scope", "Log time", "Injected", "Removed", "Development", "Size basis", "What belongs in this phase"]}
             rows={WORKBOOK.phases.map((p) => [
               <span key="c" className="whitespace-nowrap font-mono font-medium">
-                {p.code} {!appPhases.has(p.code) && <Badge tone="amber">coming</Badge>}
+                {p.code}
               </span>,
               p.name,
               p.scope,

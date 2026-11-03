@@ -13,6 +13,8 @@ import {
   canEditScheduleRow,
   canCompleteTask,
   canEditTaskPlan,
+  canEditSizePlan,
+  canEditQualityPlan,
   canEditOwnTeamRow,
   canAddTeamRow,
   canDecideChange,
@@ -184,6 +186,18 @@ describe("member-owned team rows (LOGTEST, CCR)", () => {
     expect(canEditTaskPlan(formerMemberA, teamA)).toBe(false);
     expect(canEditTaskPlan(lecturer, teamA)).toBe(false);
     expect(canEditTaskPlan(demoG1, teamA)).toBe(false);
+  });
+  it("SUMS/SUMP plan: Team Leader and Planning Manager; SUMQ plan: Team Leader and Quality & Test Manager", () => {
+    expect(canEditSizePlan(leaderA, teamA)).toBe(true);
+    expect(canEditSizePlan(memberA, teamA)).toBe(true); // Planning Manager
+    expect(canEditSizePlan(qualityA, teamA)).toBe(false);
+    expect(canEditSizePlan(memberA, teamB)).toBe(false);
+    expect(canEditSizePlan(lecturer, teamA)).toBe(false);
+    expect(canEditQualityPlan(leaderA, teamA)).toBe(true);
+    expect(canEditQualityPlan(qualityA, teamA)).toBe(true);
+    expect(canEditQualityPlan(memberA, teamA)).toBe(false);
+    expect(canEditQualityPlan(formerMemberA, teamA)).toBe(false);
+    expect(canEditQualityPlan(demoG1, teamA)).toBe(false);
   });
   it("the assignee completes their own task; the plan editors any task, assigned or not", () => {
     expect(canCompleteTask(qualityA, teamA, "mA4")).toBe(true);
