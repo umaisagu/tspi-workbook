@@ -31,7 +31,7 @@ export const PUT = route(async (req, { params }: RouteContext<"/api/teams/[id]/w
   const input = await parseJson(req, weeklyReportSchema);
   const d = await loadWeekReports(id, w);
   if (d.week !== w || !d.live) throw new HttpError(404, "No report is due for that week.");
-  const text = { tasksCompleted: input.tasksCompleted, risksIssues: input.risksIssues, nextWeekPlan: input.nextWeekPlan };
+  const text = { tasksCompleted: input.tasksCompleted, risksIssues: input.risksIssues, nextWeekPlan: input.nextWeekPlan, met: input.met, present: input.present };
   const submit = input.submit
     ? { snapshot: d.live as unknown as Prisma.InputJsonValue, ...(d.report?.submittedAt ? {} : { submittedAt: new Date(), submittedById: user.userId }) }
     : {};

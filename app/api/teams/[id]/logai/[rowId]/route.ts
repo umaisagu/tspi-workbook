@@ -13,7 +13,7 @@ async function ownRow(teamId: string, rowId: string) {
   return { ctx, row };
 }
 
-/** Editing reviewed content, or changing the reviewer, withdraws an earlier approval. */
+/** Editing reviewed content, or changing the reviewer, sends the entry back for review (verdict Pending). */
 export const PATCH = route(async (req, { params }: RouteContext<"/api/teams/[id]/logai/[rowId]">) => {
   const { id, rowId } = await params;
   const { ctx, row } = await ownRow(id, rowId);
@@ -26,7 +26,7 @@ export const PATCH = route(async (req, { params }: RouteContext<"/api/teams/[id]
     data: {
       ...input,
       date: logDate(input.date),
-      ...(changed ? { approved: false, approvedAt: null } : {}),
+      ...(changed ? { approved: false, approvedAt: null, verdict: "PENDING" as const } : {}),
       ...updated(ctx.user.userId),
     },
   });

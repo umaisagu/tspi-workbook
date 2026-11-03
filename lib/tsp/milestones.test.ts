@@ -7,9 +7,11 @@ describe("milestone defaults", () => {
   it("has M1-M4 in order", () => {
     expect(MILESTONE_DEFAULTS.map((m) => m.code)).toEqual(["M1", "M2", "M3", "M4"]);
   });
-  it("puts M1 at the Week 5 lab (Wed 21 Oct 2026, 23:59 MYT)", () => {
+  it("puts M1 on Sun 25 Oct 2026, 23:59 MYT (v3.0 SETUP)", () => {
     const m1 = MILESTONE_DEFAULTS[0]!;
-    expect(milestoneDueAt(m1, week1).toISOString()).toBe("2026-10-21T15:59:00.000Z");
+    expect(milestoneDueAt(m1, week1).toISOString()).toBe("2026-10-25T15:59:00.000Z"); // Sun 25 Oct 23:59 MYT
+    expect(milestoneDueAt(MILESTONE_DEFAULTS[1]!, week1).toISOString()).toBe("2026-11-20T15:59:00.000Z"); // Fri 20 Nov
+    expect(milestoneDueAt(MILESTONE_DEFAULTS[2]!, week1).toISOString()).toBe("2026-12-20T15:59:00.000Z"); // Sun 20 Dec
   });
   it("puts M4 at the final deadline (2 Jan 2027, 10.00pm MYT)", () => {
     const m4 = MILESTONE_DEFAULTS[3]!;

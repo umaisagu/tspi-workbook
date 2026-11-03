@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { loadOneTeamRoles, rolesOf } from "@/lib/server/roles";
 import { canManageRoster } from "@/lib/auth/permissions";
 import { teamUpdateSchema } from "@/lib/schemas/admin";
 import { updated } from "@/lib/server/audit";
@@ -8,19 +9,18 @@ import { HttpError, forbidden, ok, parseJson, route } from "@/lib/server/http";
 export const GET = route(async (_req, { params }: RouteContext<"/api/teams/[id]">) => {
   const { id } = await params;
   await requireTeamViewer(id);
-  return ok(
-    await db.team.findUnique({
+  const [team, roles] = await Promise.all([
+    db.team.findUnique({
       where: { id },
       include: {
         labGroup: { select: { name: true } },
-        memberships: {
-          where: { leftAt: null },
-          include: { user: { select: { name: true, email: true } }, roles: true },
-          orderBy: { joinedAt: "asc" },
-        },
+        memberships: { where: { leftAt: null }, include: { user: { select: { name: true, email: true } } }, orderBy: { joinedAt: "asc" } },
       },
     }),
-  );
+    loadOneTeamRoles(id),
+  ]);
+  // Roles of the milestone in progress (Workbook v3.0 ROLES).
+  return ok(team && { ...team, memberships: team.memberships.map((m) => ({ ...m, roles: rolesOf(roles, m.id).map((role) => ({ role })) })) });
 });
 
 /** Lecturer edits everything; the Team Leader may edit project title, client and repository URL. */

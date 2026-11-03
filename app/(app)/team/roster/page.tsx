@@ -12,7 +12,8 @@ import { TeamDetailsForm } from "@/components/roster/team-details-form";
 
 export const metadata: Metadata = { title: "Team" };
 
-export default async function TeamRosterPage() {
+export default async function TeamRosterPage({ searchParams }: PageProps<"/team/roster">) {
+  const { ms } = await searchParams;
   const user = await requirePageUser();
   const current = await currentTeamFor(user);
   if (!current) {
@@ -25,7 +26,7 @@ export default async function TeamRosterPage() {
   }
   const team = (await teamWithRoster(current.team.id))!;
   const canManage = canManageRoster(user, team);
-  const view = rosterView(team, user.userId);
+  const view = await rosterView(team, user.userId, typeof ms === "string" ? ms : null);
   const components = await listComponents(team.id);
   return (
     <div className="space-y-5">
@@ -33,8 +34,18 @@ export default async function TeamRosterPage() {
         title={team.name}
         subtitle={`${team.labGroup.name} · ${team.labGroup.semester.name}${team.projectTitle ? ` · ${team.projectTitle}` : ""}`}
       />
-      <Card title="Members and TSPi roles">
-        <RosterManager teamId={team.id} members={view.rows} canManage={canManage} errors={view.errors} warnings={view.warnings} />
+      <Card title="Members and TSPi roles by milestone">
+        <RosterManager
+          teamId={team.id}
+          basePath="/team/roster"
+          members={view.rows}
+          canManage={canManage}
+          errors={view.errors}
+          warnings={view.warnings}
+          milestones={view.milestones}
+          milestoneId={view.milestoneId}
+          load={view.load}
+        />
       </Card>
       <Card title="Components">
         <ComponentsManager

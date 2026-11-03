@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { taskSchema } from "@/lib/schemas/forms";
 import { updated } from "@/lib/server/audit";
 import { requireTaskPlan } from "@/lib/server/forms/access";
-import { assertComponent, assertTeammate, logDate } from "@/lib/server/forms/refs";
+import { assertComponent, assertTeamMilestone, assertTeammate, logDate, taskCode } from "@/lib/server/forms/refs";
 import { notFound, ok, parseJson, route } from "@/lib/server/http";
 
 async function load(teamId: string, taskId: string) {
@@ -18,6 +18,8 @@ export const PATCH = route(async (req, { params }: RouteContext<"/api/teams/[id]
   const input = await parseJson(req, taskSchema);
   await assertComponent(id, input.componentId);
   await assertTeammate(id, input.assigneeMembershipId, "", "assigneeMembershipId");
+  await assertTeamMilestone(id, input.milestoneId);
+  const code = await taskCode(id, input.code, taskId);
   await db.task.update({
     where: { id: taskId },
     data: {
@@ -31,6 +33,10 @@ export const PATCH = route(async (req, { params }: RouteContext<"/api/teams/[id]
       sizeMeasure: input.sizeMeasure,
       rate: input.rate,
       completedOn: input.completedOn ? logDate(input.completedOn, "completedOn") : null,
+      code,
+      milestoneId: input.milestoneId,
+      status: input.status,
+      planWeek: input.planWeek,
       ...updated(user.userId),
     },
   });

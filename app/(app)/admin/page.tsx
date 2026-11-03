@@ -56,7 +56,7 @@ export default async function AdminPage() {
             { name: "name", label: "Name", placeholder: "Sem 1 2026/2027" },
             { name: "week1Monday", label: "Week 1 Monday", type: "date" },
             { name: "weekCount", label: "Weeks", type: "number", defaultValue: "15" },
-            { name: "breakWeeks", label: "Break weeks", defaultValue: "8", hint: "Comma-separated" },
+            { name: "breakWeeks", label: "Break weeks", defaultValue: "", hint: "Comma-separated; v3.0 has none" },
           ]}
         />
       </Card>

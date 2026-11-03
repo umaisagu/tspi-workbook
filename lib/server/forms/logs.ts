@@ -26,6 +26,7 @@ export async function listTimeLogs(membershipId: string, week1Monday: Date) {
     taskId: r.taskId,
     taskName: r.task?.name ?? null,
     comments: r.comments,
+    aiUsed: r.aiUsed,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   }));
@@ -50,6 +51,9 @@ export async function listDefectLogs(membershipId: string, week1Monday: Date) {
     phaseRemoved: r.phaseRemoved,
     fixTimeMin: r.fixTimeMin,
     fixRefId: r.fixRefId,
+    severity: r.severity,
+    fromAi: r.fromAi,
+    fixReference: r.fixReference,
     fixRefNumber: r.fixRef?.number ?? null,
     description: r.description,
     createdAt: r.createdAt.toISOString(),
@@ -73,7 +77,14 @@ function aiRow(
     date: formatDateOnly(r.date),
     week: weekOf(r.date, week1Monday),
     module: r.module,
+    feature: r.feature,
     tool: r.tool,
+    linesGenerated: r.linesGenerated,
+    linesKept: r.linesKept,
+    testsWritten: r.testsWritten,
+    testStatus: r.testStatus,
+    commitRef: r.commitRef,
+    verdict: r.verdict,
     model: r.model,
     promptSpec: r.promptSpec,
     outputSummary: r.outputSummary,
@@ -100,7 +111,7 @@ export async function listAiLogs(membershipId: string, week1Monday: Date) {
 export async function listAiReviewRequests(reviewerMembershipId: string, week1Monday: Date) {
   const rows = await db.aiLog.findMany({
     where: { reviewerMembershipId, deletedAt: null },
-    orderBy: [{ approved: "asc" }, { date: "desc" }],
+    orderBy: [{ verdict: "desc" }, { date: "desc" }],
     include: aiInclude,
   });
   return rows.map((r) => aiRow(r, week1Monday));
@@ -126,7 +137,7 @@ export async function listComponents(teamId: string) {
 export type ComponentRow = Awaited<ReturnType<typeof listComponents>>[number];
 
 export async function listTaskOptions(teamId: string) {
-  const rows = await db.task.findMany({ where: { teamId, deletedAt: null }, orderBy: { order: "asc" }, select: { id: true, name: true, phase: true } });
+  const rows = await db.task.findMany({ where: { teamId, deletedAt: null }, orderBy: { order: "asc" }, select: { id: true, code: true, name: true, phase: true } });
   return rows;
 }
 

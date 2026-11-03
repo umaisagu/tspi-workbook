@@ -25,6 +25,22 @@ describe("estimated hours (size / rate)", () => {
   });
 });
 
+describe("planTasks with a typed plan week (v3.0)", () => {
+  it("uses the typed week and keeps cancelled tasks' plan value", () => {
+    const sched = new Map([[3, 10], [4, 10]]);
+    const r = planTasks(
+      [
+        { id: "a", order: 1, planHours: 5, completedWeek: null, fixedPlanWeek: 9 },
+        { id: "b", order: 2, planHours: 5, completedWeek: 4 },
+      ],
+      sched,
+    );
+    expect(r.map((t) => t.planWeek)).toEqual([9, 3]);
+    expect(r.map((t) => t.planValue)).toEqual([0.5, 0.5]);
+    expect(r[1]!.earnedValue).toBe(0.5);
+  });
+});
+
 describe("planTasks", () => {
   const r = planTasks(tasks, schedule);
   it("gives each task PV = plan hours / total plan hours", () => {

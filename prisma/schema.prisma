@@ -21,6 +21,42 @@ enum AppRole {
 }
 
 /// The five TSPi roles (docs/TSP_Student_Information_Sheet.md, section J).
+/// Workbook v3.0 CCR change type (LISTS Change Type).
+enum ChangeType {
+  REQUIREMENT
+  DESIGN
+  CODE
+  TEST
+  DOCUMENT
+  BUILD_CI
+}
+
+/// Workbook v3.0 LOGAI review verdict (LISTS Review Verdict); Approved and Approved with changes count as approved.
+enum AiVerdict {
+  APPROVED
+  APPROVED_WITH_CHANGES
+  CHANGES_REQUESTED
+  REJECTED
+  PENDING
+}
+
+/// Workbook v3.0 LOGD severity (LISTS Severity).
+enum DefectSeverity {
+  CRITICAL
+  MAJOR
+  MINOR
+  COSMETIC
+}
+
+/// Workbook v3.0 TASK status (LISTS Task Status). Complete ⇔ completedOn is set.
+enum TaskStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETE
+  CARRIED_OVER
+  CANCELLED
+}
+
 enum TspiRole {
   TEAM_LEADER
   PRODUCT_OWNER
@@ -75,6 +111,11 @@ enum TestType {
   UNIT
   WIDGET
   INTEGRATION
+  MANUAL
+  ACCEPTANCE
+  REGRESSION
+  PERFORMANCE
+  SECURITY
 }
 
 enum TestStatus {
@@ -89,6 +130,7 @@ enum ChangeStatus {
   APPROVED
   REJECTED
   IMPLEMENTED
+  DEFERRED
 }
 
 enum Priority {
@@ -222,6 +264,9 @@ model Milestone {
   updatedById   String?
 
   peerEvaluations PeerEvaluation[]
+  tasks           Task[]
+  changeRequests  ChangeRequest[]
+  roleAssignments RoleAssignment[]
 
   @@unique([semesterId, code])
 }
@@ -310,7 +355,8 @@ model Membership {
   testLogs        TestLog[]
   peerGiven       PeerEvaluation[] @relation("PeerEvaluator")
   peerReceived    PeerEvaluation[] @relation("PeerEvaluatee")
-  changeRequests  ChangeRequest[]
+  changeRequests  ChangeRequest[]  @relation("ChangeRequester")
+  changeReviews   ChangeRequest[]  @relation("ChangeReviewer")
   comments        FormComment[]
   notes           LecturerNote[]
   flagReviews     FlagReview[]
@@ -322,14 +368,19 @@ model Membership {
 
 /// TSPi role held by a member. In a 6-member team two members share one role.
 /// Holding TEAM_LEADER grants the app's Team Leader permissions.
+/// Workbook v3.0 ROLES: who holds which role in each milestone. The milestone in progress decides permissions
+/// (lib/server/roles.ts; a milestone the team has not filled yet falls back to the latest earlier one).
 model RoleAssignment {
   membershipId String
   membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
   role         TspiRole
+  milestoneId  String
+  milestone    Milestone  @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
   createdById  String?
 
-  @@id([membershipId, role])
+  @@id([membershipId, role, milestoneId])
+  @@index([milestoneId])
 }
 
 // ---------- Individual forms ----------
@@ -398,6 +449,8 @@ model TimeLog {
   taskId       String?
   task         Task?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
   comments     String?
+  /// Workbook v3.0 LOGT "AI used?"
+  aiUsed       Boolean    @default(false)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   createdById  String?
@@ -411,25 +464,29 @@ model TimeLog {
 
 /// LOGD: Defect Recording Log. type uses the workbook's DefectTypes (10..100).
 model DefectLog {
-  id            String      @id @default(cuid())
+  id            String         @id @default(cuid())
   membershipId  String
-  membership    Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-  date          DateTime    @db.Date
+  membership    Membership     @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  date          DateTime       @db.Date
   /// Sequential per member.
   number        Int
   type          Int
   componentId   String?
-  component     Component?  @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  component     Component?     @relation(fields: [componentId], references: [id], onDelete: SetNull)
   phaseInjected Phase
   phaseRemoved  Phase
   fixTimeMin    Int
   /// Defect this fix relates to (workbook "Fix Ref.").
   fixRefId      String?
-  fixRef        DefectLog?  @relation("DefectFixRef", fields: [fixRefId], references: [id], onDelete: SetNull)
-  fixedBy       DefectLog[] @relation("DefectFixRef")
+  fixRef        DefectLog?     @relation("DefectFixRef", fields: [fixRefId], references: [id], onDelete: SetNull)
+  fixedBy       DefectLog[]    @relation("DefectFixRef")
   description   String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  /// Workbook v3.0 LOGD: severity, whether the defect came from AI-generated code, and the commit / PR that fixed it
+  severity      DefectSeverity @default(MINOR)
+  fromAi        Boolean        @default(false)
+  fixReference  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   createdById   String?
   updatedById   String?
   deletedAt     DateTime?
@@ -448,16 +505,25 @@ model AiLog {
   date                 DateTime    @db.Date
   module               String
   tool                 String
-  model                String
+  model                String?
   promptSpec           String
-  outputSummary        String
-  humanRefinement      String
-  testEvidence         String
+  outputSummary        String?
+  humanRefinement      String?
+  testEvidence         String?
   prUrl                String?
   reviewerMembershipId String?
   reviewer             Membership? @relation("AiLogReviewer", fields: [reviewerMembershipId], references: [id], onDelete: SetNull)
   approved             Boolean     @default(false)
   approvedAt           DateTime?
+  /// Workbook v3.0 LOGAI: feature, lines generated / kept, tests written and their status, commit / PR, reviewer verdict.
+  /// (model, outputSummary, humanRefinement, testEvidence and prUrl are kept for entries made before v3.0.)
+  feature              String?
+  linesGenerated       Int?
+  linesKept            Int?
+  testsWritten         Boolean     @default(false)
+  testStatus           TestStatus?
+  commitRef            String?
+  verdict              AiVerdict   @default(PENDING)
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
   createdById          String?
@@ -553,6 +619,13 @@ model Task {
   rate                 Decimal?     @db.Decimal(10, 2)
   /// Workbook "Actual Date": the task is 100% complete on this date.
   completedOn          DateTime?    @db.Date
+  /// Workbook v3.0 TASK: Task ID (T01…, unique per team among live tasks), milestone, status and typed plan week.
+  code                 String?
+  milestoneId          String?
+  milestone            Milestone?   @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  status               TaskStatus   @default(PLANNED)
+  /// Plan week typed by the planner; null = taken from SCHEDULE (first week covering the cumulative plan hours).
+  planWeek             Int?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
   createdById          String?
@@ -617,6 +690,9 @@ model TestLog {
   actual             String?
   status             TestStatus @default(NOT_RUN)
   date               DateTime   @db.Date
+  /// Workbook v3.0 LOGTEST: automated test, and the LOGD defect it raised (e.g. D003).
+  automated          Boolean    @default(false)
+  defectRef          String?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   createdById        String?
@@ -636,6 +712,9 @@ model WeeklyReport {
   tasksCompleted String?
   risksIssues    String?
   nextWeekPlan   String?
+  /// Workbook v3.0 WEEK: whether the team met this week, and how many members were present.
+  met            Boolean?
+  present        Int?
   snapshot       Json?
   submittedAt    DateTime?
   submittedById  String?
@@ -655,7 +734,7 @@ model ChangeRequest {
   number                Int
   date                  DateTime     @db.Date
   requesterMembershipId String
-  requester             Membership   @relation(fields: [requesterMembershipId], references: [id], onDelete: Cascade)
+  requester             Membership   @relation("ChangeRequester", fields: [requesterMembershipId], references: [id], onDelete: Cascade)
   componentId           String?
   component             Component?   @relation(fields: [componentId], references: [id], onDelete: SetNull)
   description           String
@@ -665,6 +744,14 @@ model ChangeRequest {
   status                ChangeStatus @default(SUBMITTED)
   decidedById           String?
   decidedAt             DateTime?
+  /// Workbook v3.0 CCR: change type, estimated hours, milestone, reviewer and notes.
+  changeType            ChangeType?
+  estHours              Decimal?     @db.Decimal(8, 2)
+  milestoneId           String?
+  milestone             Milestone?   @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  reviewerMembershipId  String?
+  reviewer              Membership?  @relation("ChangeReviewer", fields: [reviewerMembershipId], references: [id], onDelete: SetNull)
+  notes                 String?
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
   createdById           String?

@@ -120,7 +120,11 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 - TSPi roles (v3.0, six): Team Leader, Product Owner, Development Manager, Planning Manager, Quality & Test Manager
   (stored as `QUALITY_PROCESS_MANAGER`), Support Manager. Each role has one holder; nobody holds more than two (errors);
   6 − team size members hold two, unassigned roles and members without a role are warnings. The team must keep
-  a Team Leader (lecturer can override). One active team per student per semester. Staff accounts cannot
+  a Team Leader (lecturer can override).
+- Roles per milestone (v3.0 ROLES): `RoleAssignment` has `milestoneId`; the roster edits one milestone at a time (tabs,
+  "copy to later milestones", role load check). Permissions use the milestone in progress (first not yet due); if the
+  team has not filled it, the latest earlier filled one (`lib/server/roles.ts` → `roleMilestoneId` in lib/tsp/roles.ts).
+  Every role read goes through `loadTeamRoles` / `rolesOf` (viewer, planning, monitoring, roster, team API). One active team per student per semester. Staff accounts cannot
   be team members.
 - Registration only for `ALLOWED_EMAIL_DOMAINS` (exact domain match). Everyone registers as STUDENT;
   the lecturer assigns staff roles. First lecturer: `npm run create-lecturer`.
@@ -130,13 +134,16 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 
 - Form pages: `/t/[teamId]/forms/[slug]?member=<membershipId>` (staff pick the member; students see their own).
   `/forms` lists a student's forms. API: `/api/teams/[id]/{si,logt,logd,logai}` (+ `/[rowId]`), `?member=` on GET.
-- LOGT: delta = stop − start − interruption (minutes), computed on the server; no future dates; phase must be
+- LOGT: "AI used?" per session. Delta = stop − start − interruption (minutes), computed on the server; no future dates; phase must be
   one where time is logged (not AT/PL); sessions of one member may not overlap on the same day (back-to-back is fine);
   sessions past midnight are split into two entries.
 - LOGD: number = next in the member's sequence (never reused); types 10–100 (TSP) and 110–150 (v3.0 DEFECTTYPES); removal phase
-  cannot be earlier than injection phase; Fix Ref. points to another of the member's defects.
-- LOGAI: code AI-001… per student; reviewer is a current teammate (not self); only the reviewer can approve
-  (`POST …/logai/[rowId]/review`); editing reviewed fields or changing reviewer withdraws approval.
+  cannot be earlier than injection phase; severity (default Minor), "From AI code?", fix reference (commit/PR; empty =
+  open); `fixRefId` still links a defect injected while fixing another of the member's defects.
+- LOGAI (v3.0 columns): code AI-001… per student; file/module, feature, AI tool (v3.0 list), prompt, lines generated and
+  kept (keep %), tests written, test status, commit/PR; reviewer is a current teammate (not self). Only the reviewer
+  gives the verdict (`POST …/logai/[rowId]/review {verdict}`); Approved / Approved with changes set `approved`.
+  Editing reviewed fields or changing reviewer sends it back to Pending. Pre-v3.0 text fields are kept as notes.
 - FORM-SI: sections A–K as in the information sheet; saving requires the declaration; `submittedAt` is the first
   submission (kept for lateness), later edits update `updatedAt`. Residence stored as option or `Other: …`.
 - Components (team's assemblies/parts) are edited by the Team Leader on the Team page; deleted names can be re-added.
@@ -145,10 +152,13 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 
 ## Planning rules (Stage 3)
 
-- TASK (Team Leader and Planning Manager edit; team reads): plan hours entered, or left empty to use size ÷ rate. PV = plan hours /
-  total plan hours; plan week = first week whose cumulative SCHEDULE hours cover the task's cumulative plan hours
-  (tasks in `order`); EV = PV credited in the completion week (`completedOn`, no future dates). Actual hours =
-  Σ LOGT delta linked to the task. Deleted tasks drop out of the plan.
+- TASK (Team Leader and Planning Manager edit; team reads): Task ID (typed or next T-number, unique among live tasks),
+  milestone, status (Planned, In progress, Complete, Carried over, Cancelled). Plan hours entered, or left empty to use
+  size ÷ rate. PV = plan hours / total plan hours (cancelled tasks still count, as in v3.0); plan week = typed, else the
+  first week whose cumulative SCHEDULE hours cover the task's cumulative plan hours (tasks in `order`); Complete ⇔
+  `completedOn` set, and EV = PV credited in that week (no future dates). The assignee sets Planned / In progress /
+  Complete on their own task; only plan editors set Carried over / Cancelled. Actual hours = Σ LOGT delta linked to the
+  task. Deleted tasks drop out of the plan.
 - SCHEDULE: plan hours per member per week (`ScheduleWeek`); a member edits their own row, the Team Leader any row;
   team plan = sum. Actual hours = Σ LOGT of the team by week (up to the current week). Predicted EV/hours for
   future weeks = average per working week so far (from the first planned week; break weeks excluded and get 0).
@@ -178,16 +188,18 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 ## Stage 5 rules: LOGTEST, WEEK, PEER, CCR, dashboards
 
 - LOGTEST (team form): any member adds test cases authored by themselves (the leader may set another author);
-  IDs TC-001… per team unless typed; IDs unique per team. Summary: counts by type/status, pass rate of executed.
-- WEEK (Team Leader): one report per week from Week 5 to the current week, skipping break weeks; due Wednesday of
+  IDs TC-001… per team unless typed; IDs unique per team; v3.0 types (Unit, Widget, Integration, Manual, Acceptance,
+  Regression, Performance, Security), "Automated?", defect ref. Summary: counts by type/status, pass rate of executed.
+- WEEK (Team Leader): one report per week from Week 3 (v3.0) to the current week, skipping break weeks; "Met?", members
+  present, status On track / At risk / Behind from the EV variance (< −0.02 / < −0.10, `weekStatus`); due Wednesday of
   the following week 16:00 MYT (before the lab). Figures as the workbook WEEK sheet (`lib/tsp/week.ts`), live until
   submitted, then frozen in `snapshot`; typed: tasks completed notes, risks and issues, next week's plan.
   `submittedAt` = first submission. Status: submitted / late / missing / open.
 - PEER (individual, private to author + lecturer): per milestone with `peerRequired`; 10 rubric criteria 1–5
   (`lib/tsp/peer.ts`), self + every current member; submit requires all; first submission time kept; drafts allowed.
   New semesters set `peerRequired` = PEER in the milestone's required forms (default from M2). No comments on PEER.
-- CCR: any member raises; requester edits/deletes while SUBMITTED; Team Leader edits any and sets status
-  (approve/reject/implemented), which records decided by/at.
+- CCR: any member raises (change type, est. hours, milestone, reviewer, notes); requester edits/deletes while SUBMITTED;
+  Team Leader edits any and sets the decision (approve/reject/defer/implemented), which records decided by/at.
 - Milestone completion (`lib/tsp/completion.ts`): complete / late / missing / pending per required form; log forms
   need an entry dated ≤ due (late if all such entries were typed after the due time); SUMP/SUMQ/SUMTASK follow their
   inputs; WEEK needs every report due by the milestone. Shown on `/t/[teamId]/milestones` and the team dashboard.
@@ -257,8 +269,7 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
    the assigned member marks their own task done.
 4. SCHEDULE plan hours are entered per member per week (each member their own row, Team Leader any row);
    the team plan is their sum.
-5. WEEK reports from Week 5 (the prompt's choice; the brief says "after the first milestone"), due before
-   the following Wednesday lab (configurable later).
+5. WEEK reports from Week 3 (v3.0 WEEK sheet), due before the following Wednesday lab.
 6. LOGAI IDs `AI-001…` numbered per student; reviewer is a teammate; `approved` flag.
 7. PEER uses the 10 criteria of the Peer/Individual Evaluation rubric (1–5 each, 50 marks), self + each
    teammate, per milestone where `Milestone.peerRequired`. The anonymous Team Evaluation rubric is not
@@ -269,12 +280,14 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
    (submitted/approved/rejected/implemented), decided by/at.
 10. All 24 workbook phases are available; the lecturer can hide phases per semester (`Semester.hiddenPhases`).
 11. The lecturer (or a team leader) adds students to teams by e-mail after they register.
-12. Calendar: Week 1 = Mon 21 Sep 2026, break = Week 8, M1 Wk5, M2 Wk9, M3 Wk13 (Wed 23:59 MYT),
-    M4 Wk15 (Sat 2 Jan 2027 22:00 MYT).
+12. Calendar (v3.0 SETUP): Week 1 = Mon 21 Sep 2026, no break week; M1 Sun 25 Oct, M2 Fri 20 Nov, M3 Sun 20 Dec 2026
+    (23:59 MYT; v3.0 gives dates only), M4 Sat 2 Jan 2027 22:00 MYT. Defaults for new semesters; the lecturer edits an
+    existing semester's break weeks and milestone dates on its page. Node is pinned to 22.x.
 13. Preview deployments use a separate Neon database with test data only (never a branch of production).
 15. Workbook v3.0 (2026-10-29) replaces the 2002 workbook; v3.0 wins where they differ. Staged alignment:
-    1 ✅ Reference page + downloads, six roles, defect types 110–150; 2 existing-form fields, calendar (v3.0 has no
-    break week; dues 25 Oct, 20 Nov, 20 Dec 2026, 2 Jan 2027), roles per milestone; 3 27 phases (AIGEN, BUILD←COMPILE,
+    1 ✅ Reference page + downloads, six roles, defect types 110–150; 2 ✅ existing-form fields, calendar, roles per
+    milestone (lecturer's choices: EV week = completion date; cancelled tasks keep plan value; the milestone in
+    progress decides roles; LOGAI switched to v3.0 columns); 3 27 phases (AIGEN, BUILD←COMPILE,
     WT, CICD, UAT←AT) with SUMP/SUMQ rebuilt to v3.0 and personal MYSUMP/MYSUMQ; 4 new forms (SETUP thresholds, GOALS, STRAT, LOGCLIENT, IRTL,
     TEAMEVAL, ASSESS, Team Charter). FORM-SI keeps sections A–K; the Team Charter becomes a team form (lecturer's choice).
     The SAMPLE is shown on the Reference page and downloadable; it is not loaded into the database.

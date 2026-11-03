@@ -1,6 +1,7 @@
 import "server-only";
 import type { FlagStatus, FlagType } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
+import { loadOneTeamRoles, rolesOf } from "@/lib/server/roles";
 import { githubEnabled } from "@/lib/env";
 import { isLecturer, type Viewer } from "@/lib/auth/permissions";
 import { computeFlags, flagKey, type Flag } from "@/lib/monitoring/flags";
@@ -35,9 +36,10 @@ export async function loadTeamMonitoring(teamId: string, viewer: Viewer, now: Da
   const wk = (d: Date) => weekOf(d, week1);
   const lecturer = isLecturer(viewer);
 
+  const teamRoles = await loadOneTeamRoles(teamId, now);
   const [thresholds, memberships, logt, logd, logai, tests, peers, milestones, github, reviews, weeks, lastTask, notes] = await Promise.all([
     thresholdsFor(planning.semester.id),
-    db.membership.findMany({ where: { id: { in: memberIds } }, select: { id: true, joinedAt: true, roles: true } }),
+    db.membership.findMany({ where: { id: { in: memberIds } }, select: { id: true, joinedAt: true } }),
     db.timeLog.findMany({ where: { membershipId: { in: memberIds }, deletedAt: null }, select: { membershipId: true, date: true, createdAt: true, deltaMin: true } }),
     db.defectLog.findMany({ where: { membershipId: { in: memberIds }, deletedAt: null }, select: { membershipId: true, date: true, createdAt: true, fixTimeMin: true } }),
     db.aiLog.findMany({ where: { membershipId: { in: memberIds }, deletedAt: null }, select: { membershipId: true, date: true, createdAt: true } }),
@@ -69,7 +71,7 @@ export async function loadTeamMonitoring(teamId: string, viewer: Viewer, now: Da
   const flags: Flag[] = computeFlags({
     members: s.members.map((m) => {
       const ms = memberships.find((x) => x.id === m.id)!;
-      return { id: m.id, name: m.name, joinedWeek: wk(ms.joinedAt), isLeader: ms.roles.some((r) => r.role === "TEAM_LEADER") };
+      return { id: m.id, name: m.name, joinedWeek: wk(ms.joinedAt), isLeader: rolesOf(teamRoles, m.id).includes("TEAM_LEADER") };
     }),
     currentWeek: planning.currentWeek,
     breakWeeks: planning.semester.breakWeeks,

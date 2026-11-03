@@ -122,7 +122,7 @@ async function main() {
         name: "Sem 1 2026/2027",
         week1Monday,
         weekCount: 15,
-        breakWeeks: [8],
+        breakWeeks: [],
         isActive: true,
         ...audit,
         milestones: {
@@ -182,7 +182,8 @@ async function main() {
             userId: user.id,
             joinedAt: new Date(Date.UTC(2026, 9, 7, 9)),
             ...audit,
-            roles: { create: s.roles.map((role) => ({ role, createdById: lecturer.id })) },
+            // The same roles in every milestone (Workbook v3.0 ROLES matrix); teams can rotate them later.
+            roles: { create: milestones.flatMap((m) => s.roles.map((role) => ({ role, milestoneId: m.id, createdById: lecturer.id }))) },
           },
         });
         members.push({

@@ -26,7 +26,7 @@ export default async function FormsPage() {
     db.timeLog.count({ where: { membershipId: membership.membershipId, deletedAt: null } }),
     db.defectLog.count({ where: { membershipId: membership.membershipId, deletedAt: null } }),
     db.aiLog.count({ where: { membershipId: membership.membershipId, deletedAt: null } }),
-    db.aiLog.count({ where: { reviewerMembershipId: membership.membershipId, approved: false, deletedAt: null } }),
+    db.aiLog.count({ where: { reviewerMembershipId: membership.membershipId, verdict: "PENDING", deletedAt: null } }),
     db.peerEvaluation.findMany({ where: { evaluatorId: membership.membershipId, submittedAt: { not: null } }, distinct: ["milestoneId"], select: { milestoneId: true } }),
   ]);
   const status: Record<string, React.ReactNode> = {

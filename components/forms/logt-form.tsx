@@ -6,7 +6,7 @@ import { timeLogSchema } from "@/lib/schemas/forms";
 import { phaseName } from "@/lib/tsp/phases";
 import { minutesToHours, parseClock, timeEntryErrors, totalHours } from "@/lib/tsp/time";
 import { LogTable, type FieldDef, type Option } from "./log-table";
-import { none, phaseOptions, todayString } from "./options";
+import { YES_NO, none, phaseOptions, todayString } from "./options";
 
 export function LogtForm({
   teamId,
@@ -31,6 +31,7 @@ export function LogtForm({
     { name: "phase", label: "Phase", type: "select", options: phaseOptions((p) => p.logTime, hiddenPhases), wide: true },
     { name: "componentId", label: "Component", type: "select", options: [none(), ...components] },
     { name: "taskId", label: "Task", type: "select", options: [none(), ...tasks] },
+    { name: "aiUsed", label: "AI used?", type: "select", options: YES_NO, hint: "Yes when a generator wrote code in this session (add a LOGAI row)" },
     { name: "comments", label: "Comments", type: "textarea" },
   ];
   return (
@@ -41,7 +42,7 @@ export function LogtForm({
       schema={timeLogSchema}
       createUrl={`/api/teams/${teamId}/logt`}
       rowUrl={(id) => `/api/teams/${teamId}/logt/${id}`}
-      emptyValues={() => ({ date: todayString(), start: "", stop: "", interruptMin: "0", phase: rows.at(-1)?.phase ?? "PLAN", componentId: rows.at(-1)?.componentId ?? "", taskId: "", comments: "" })}
+      emptyValues={() => ({ date: todayString(), start: "", stop: "", interruptMin: "0", phase: rows.at(-1)?.phase ?? "PLAN", componentId: rows.at(-1)?.componentId ?? "", taskId: "", aiUsed: "no", comments: "" })}
       toValues={(r) => ({
         date: r.date,
         start: r.start,
@@ -50,6 +51,7 @@ export function LogtForm({
         phase: r.phase,
         componentId: r.componentId ?? "",
         taskId: r.taskId ?? "",
+        aiUsed: r.aiUsed ? "yes" : "no",
         comments: r.comments ?? "",
       })}
       phaseOf={(r) => r.phase}
@@ -76,6 +78,7 @@ export function LogtForm({
         { key: "phase", label: "Phase", render: (r) => <span title={phaseName(r.phase)}>{r.phase}</span> },
         { key: "component", label: "Component", render: (r) => r.componentName ?? "—" },
         { key: "task", label: "Task", render: (r) => r.taskName ?? "—" },
+        { key: "ai", label: "AI?", render: (r) => (r.aiUsed ? "Yes" : "") },
         { key: "comments", label: "Comments", render: (r) => <span className="line-clamp-2 max-w-xs">{r.comments}</span> },
       ]}
       footer={(visible) => (
@@ -84,7 +87,7 @@ export function LogtForm({
             Total
           </td>
           <td className="px-2 py-2 text-right">{visible.reduce((s, r) => s + r.deltaMin, 0)} min</td>
-          <td colSpan={4} className="px-2 py-2">
+          <td colSpan={5} className="px-2 py-2">
             = {totalHours(visible)} hours
           </td>
         </tr>

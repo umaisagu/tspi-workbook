@@ -25,7 +25,7 @@ export async function teamWithRoster(teamId: string) {
       labGroup: { include: { semester: true } },
       memberships: {
         where: { leftAt: null },
-        include: { user: { select: { id: true, name: true, email: true } }, roles: true },
+        include: { user: { select: { id: true, name: true, email: true } } },
         orderBy: { joinedAt: "asc" },
       },
     },

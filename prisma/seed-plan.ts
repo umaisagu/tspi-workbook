@@ -106,6 +106,8 @@ export async function seedPlan(
     schedule,
   );
   const created: { id: string; phase: Phase; planWeek: number | null; assigneeId: string }[] = [];
+  const team = await db.team.findUniqueOrThrow({ where: { id: opts.teamId }, select: { labGroup: { select: { semesterId: true } } } });
+  const milestones = await db.milestone.findMany({ where: { semesterId: team.labGroup.semesterId }, orderBy: { week: "asc" } });
   for (const [i, t] of rows.entries()) {
     const planWeek = planned[i]!.planWeek;
     let completedOn: Date | null = null;
@@ -131,6 +133,9 @@ export async function seedPlan(
         planHours: t.hours,
         ...(t.phase === "CODE" ? { estSize: t.hours * 40, sizeMeasure: "LOC" as const, rate: 40 } : {}),
         completedOn,
+        code: `T${String(i + 1).padStart(2, "0")}`,
+        milestoneId: (planWeek !== null ? milestones.find((m) => m.week >= planWeek) : undefined)?.id ?? milestones.at(-1)?.id ?? null,
+        status: completedOn ? "COMPLETE" : planWeek !== null && planWeek <= currentWeek ? "IN_PROGRESS" : "PLANNED",
         ...audit,
       },
     });

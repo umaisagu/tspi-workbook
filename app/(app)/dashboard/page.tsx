@@ -36,14 +36,14 @@ export default async function DashboardPage() {
   const { planning } = s;
   const week = planning.currentWeek;
   const [reviewsWaiting, weekReports] = await Promise.all([
-    db.aiLog.count({ where: { reviewerMembershipId: me, approved: false, deletedAt: null } }),
+    db.aiLog.count({ where: { reviewerMembershipId: me, verdict: "PENDING", deletedAt: null } }),
     isTeamLeaderOf(user, team.id) ? loadWeekReports(team.id, null) : Promise.resolve(null),
   ]);
 
   const myHoursThisWeek = planning.memberWeekHours.filter((h) => h.memberId === me && h.week === week).reduce((x, h) => x + h.hours, 0);
   const myPlanThisWeek = planning.scheduleByMember.get(me)?.get(week) ?? 0;
   const myOpen = planning.tasks
-    .filter((t) => t.assigneeMembershipId === me && !t.completedOn)
+    .filter((t) => t.assigneeMembershipId === me && !t.completedOn && t.status !== "CANCELLED" && t.status !== "CARRIED_OVER")
     .sort((a, b) => (a.planWeek ?? 99) - (b.planWeek ?? 99));
 
   // Forms due: my forms for the current milestone that are not done, team forms if I lead, reviews waiting.

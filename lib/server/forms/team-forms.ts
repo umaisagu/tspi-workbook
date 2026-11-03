@@ -22,6 +22,8 @@ export async function listTests(teamId: string, week1Monday: Date) {
     expected: t.expected,
     actual: t.actual,
     status: t.status,
+    automated: t.automated,
+    defectRef: t.defectRef,
     date: formatDateOnly(t.date),
     week: weekOf(t.date, week1Monday),
     authorMembershipId: t.authorMembershipId,
@@ -36,7 +38,12 @@ export async function listChangeRequests(teamId: string) {
   const rows = await db.changeRequest.findMany({
     where: { teamId, deletedAt: null },
     orderBy: { number: "asc" },
-    include: { requester: { include: { user: { select: { name: true } } } }, component: { select: { name: true } } },
+    include: {
+      requester: { include: { user: { select: { name: true } } } },
+      reviewer: { include: { user: { select: { name: true } } } },
+      component: { select: { name: true } },
+      milestone: { select: { code: true } },
+    },
   });
   const deciders = await db.user.findMany({
     where: { id: { in: rows.map((r) => r.decidedById).filter((x): x is string => x !== null) } },
@@ -55,6 +62,13 @@ export async function listChangeRequests(teamId: string) {
     impact: c.impact,
     priority: c.priority,
     status: c.status,
+    changeType: c.changeType,
+    estHours: c.estHours === null ? null : Number(c.estHours),
+    milestoneId: c.milestoneId,
+    milestoneCode: c.milestone?.code ?? null,
+    reviewerMembershipId: c.reviewerMembershipId,
+    reviewerName: c.reviewer?.user.name ?? null,
+    notes: c.notes,
     decidedByName: deciders.find((d) => d.id === c.decidedById)?.name ?? null,
     decidedAt: c.decidedAt?.toISOString() ?? null,
   }));
@@ -83,6 +97,8 @@ export async function loadWeekReports(teamId: string, selected: number | null, n
       tasksCompleted: report.tasksCompleted,
       risksIssues: report.risksIssues,
       nextWeekPlan: report.nextWeekPlan,
+      met: report.met,
+      present: report.present,
       submittedAt: report.submittedAt?.toISOString() ?? null,
       /** Figures frozen at submission. */
       snapshot: report.snapshot as WeekReport | null,

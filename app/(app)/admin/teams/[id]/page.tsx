@@ -10,12 +10,13 @@ import { TeamDetailsForm } from "@/components/roster/team-details-form";
 
 export const metadata: Metadata = { title: "Team" };
 
-export default async function AdminTeamPage({ params }: PageProps<"/admin/teams/[id]">) {
+export default async function AdminTeamPage({ params, searchParams }: PageProps<"/admin/teams/[id]">) {
+  const { ms } = await searchParams;
   const user = await requireLecturerPage();
   const { id } = await params;
   const team = await teamWithRoster(id);
   if (!team) notFound();
-  const view = rosterView(team, user.userId);
+  const view = await rosterView(team, user.userId, typeof ms === "string" ? ms : null);
   return (
     <div className="space-y-5">
       <PageHeader
@@ -34,7 +35,17 @@ export default async function AdminTeamPage({ params }: PageProps<"/admin/teams/
         />
       </Card>
       <Card title="Members and TSPi roles">
-        <RosterManager teamId={team.id} members={view.rows} canManage errors={view.errors} warnings={view.warnings} />
+        <RosterManager
+          teamId={team.id}
+          basePath={`/admin/teams/${team.id}`}
+          members={view.rows}
+          canManage
+          errors={view.errors}
+          warnings={view.warnings}
+          milestones={view.milestones}
+          milestoneId={view.milestoneId}
+          load={view.load}
+        />
       </Card>
     </div>
   );

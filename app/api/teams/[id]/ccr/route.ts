@@ -3,7 +3,7 @@ import { activeMembershipIn, canAddTeamRow, canDecideChange } from "@/lib/auth/p
 import { changeRequestSchema } from "@/lib/schemas/forms";
 import { created } from "@/lib/server/audit";
 import { requireTeamForm } from "@/lib/server/forms/access";
-import { assertComponent, logDate, withSequenceRetry } from "@/lib/server/forms/refs";
+import { assertComponent, assertTeamMilestone, assertTeammate, logDate, withSequenceRetry } from "@/lib/server/forms/refs";
 import { listChangeRequests } from "@/lib/server/forms/team-forms";
 import { forbidden, ok, parseJson, route } from "@/lib/server/http";
 
@@ -20,6 +20,8 @@ export const POST = route(async (req, { params }: RouteContext<"/api/teams/[id]/
   if (!canAddTeamRow(user, team)) throw forbidden();
   const input = await parseJson(req, changeRequestSchema);
   await assertComponent(id, input.componentId);
+  await assertTeamMilestone(id, input.milestoneId);
+  await assertTeammate(id, input.reviewerMembershipId, "", "reviewerMembershipId");
   const decided = input.status !== "SUBMITTED";
   if (decided && !canDecideChange(user, team)) throw forbidden();
   const date = logDate(input.date);

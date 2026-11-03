@@ -6,8 +6,10 @@ import { FORM_INFO } from "@/lib/forms";
 import { defectTypeLabel } from "@/lib/tsp/defects";
 import { PEER_CRITERIA, peerTotal } from "@/lib/tsp/peer";
 import { TSPI_ROLES } from "@/lib/tsp/roles";
+import { taskStatusLabel } from "@/lib/tsp/tasks";
+import { keepRate, verdictLabel } from "@/lib/tsp/ai-log";
 import { formatDateOnly } from "@/lib/tsp/calendar";
-import { reportWeeks, submissionStatus, weekReportDueAt, type WeekReport } from "@/lib/tsp/week";
+import { WEEK_STATUS_LABELS, reportWeeks, submissionStatus, weekReportDueAt, weekStatus, type WeekReport } from "@/lib/tsp/week";
 import { listAiLogs, listDefectLogs, listTimeLogs } from "@/lib/server/forms/logs";
 import { loadPlanning, type Planning } from "@/lib/server/forms/planning";
 import { loadSums, loadSumpSumq } from "@/lib/server/forms/quality";
@@ -103,10 +105,11 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Phase", width: 10 },
             { header: "Component", width: 16 },
             { header: "Task", width: 22 },
+            { header: "AI used?", width: 6 },
             { header: "Comments", width: 30 },
             { header: "Entered", width: 16 },
           ],
-          rows: rows.map(({ m, r }) => [m.name, r.date, r.week, r.start, r.stop, r.interruptMin, r.deltaMin, r.phase, r.componentName, r.taskName, r.comments, myt(r.createdAt)]),
+          rows: rows.map(({ m, r }) => [m.name, r.date, r.week, r.start, r.stop, r.interruptMin, r.deltaMin, r.phase, r.componentName, r.taskName, r.aiUsed, r.comments, myt(r.createdAt)]),
         },
       ];
     }
@@ -124,11 +127,14 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Injected", width: 10 },
             { header: "Removed", width: 10 },
             { header: "Fix (min)", width: 8, format: "int" },
-            { header: "Fix ref.", width: 7, format: "int" },
-            { header: "Description", width: 36 },
+            { header: "Severity", width: 8 },
+            { header: "From AI?", width: 6 },
+            { header: "Fix reference", width: 12 },
+            { header: "Injected while fixing no.", width: 7, format: "int" },
+            { header: "Description & root cause", width: 36 },
             { header: "Entered", width: 16 },
           ],
-          rows: rows.map(({ m, r }) => [m.name, r.number, r.date, defectTypeLabel(r.type), r.componentName, r.phaseInjected, r.phaseRemoved, r.fixTimeMin, r.fixRefNumber, r.description, myt(r.createdAt)]),
+          rows: rows.map(({ m, r }) => [m.name, r.number, r.date, defectTypeLabel(r.type), r.componentName, r.phaseInjected, r.phaseRemoved, r.fixTimeMin, r.severity.charAt(0) + r.severity.slice(1).toLowerCase(), r.fromAi, r.fixReference, r.fixRefNumber, r.description, myt(r.createdAt)]),
         },
       ];
     }
@@ -141,17 +147,40 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Author", width: 18 },
             { header: "Code", width: 8 },
             { header: "Date", width: 11 },
-            { header: "Module", width: 14 },
-            { header: "Tool / model", width: 16 },
-            { header: "Prompt / spec", width: 30 },
-            { header: "Output summary", width: 30 },
-            { header: "Human refinement", width: 26 },
-            { header: "Test evidence", width: 22 },
-            { header: "PR", width: 20 },
+            { header: "File / module", width: 14 },
+            { header: "Feature", width: 22 },
+            { header: "AI tool", width: 12 },
+            { header: "Prompt (summarised)", width: 30 },
+            { header: "Lines gen.", width: 7, format: "int" },
+            { header: "Lines kept", width: 7, format: "int" },
+            { header: "Keep %", width: 7, format: "pct" },
             { header: "Reviewer", width: 16 },
-            { header: "Approved", width: 9 },
+            { header: "Verdict", width: 14 },
+            { header: "Tests?", width: 6 },
+            { header: "Test status", width: 8 },
+            { header: "Commit / PR", width: 14 },
+            { header: "Approved?", width: 7 },
+            { header: "Notes (before v3.0)", width: 30 },
           ],
-          rows: rows.map((r) => [r.authorName, r.code, r.date, r.module, [r.tool, r.model].filter(Boolean).join(" / "), r.promptSpec, r.outputSummary, r.humanRefinement, r.testEvidence, r.prUrl, r.reviewerName, r.approved]),
+          rows: rows.map((r) => [
+            r.authorName,
+            r.code,
+            r.date,
+            r.module,
+            r.feature,
+            r.tool,
+            r.promptSpec,
+            r.linesGenerated,
+            r.linesKept,
+            keepRate(r.linesGenerated, r.linesKept),
+            r.reviewerName,
+            verdictLabel(r.verdict),
+            r.testsWritten,
+            r.testStatus,
+            r.commitRef ?? r.prUrl,
+            r.approved,
+            [r.model, r.outputSummary, r.humanRefinement, r.testEvidence].filter(Boolean).join(" · "),
+          ]),
         },
       ];
     }
@@ -192,7 +221,8 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
           title: t,
           notes: [`Total plan hours ${p.schedule.totalTaskPlanHours} · schedule hours ${p.schedule.totalSchedulePlanHours}.`],
           columns: [
-            { header: "#", width: 4, format: "int" },
+            { header: "Task ID", width: 7 },
+            { header: "M/stone", width: 6 },
             { header: "Task", width: 28 },
             { header: "Phase", width: 9 },
             { header: "Component", width: 14 },
@@ -204,10 +234,11 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Cum PV", width: 7, format: "pct" },
             { header: "Plan week", width: 7, format: "int" },
             { header: "Actual h", width: 7, format: "dec" },
+            { header: "Status", width: 10 },
             { header: "Completed", width: 11 },
             { header: "EV", width: 7, format: "pct" },
           ],
-          rows: p.tasks.map((x, i) => [i + 1, x.name, x.phase, x.componentName, x.assigneeName, x.estSize, x.sizeMeasure, x.planHours, x.planValue, x.cumPlanValue, x.planWeek, x.actualHours, x.completedOn, x.earnedValue]),
+          rows: p.tasks.map((x) => [x.code, x.milestoneCode, x.name, x.phase, x.componentName, x.assigneeName, x.estSize, x.sizeMeasure, x.planHours, x.planValue, x.cumPlanValue, x.planWeek, x.actualHours, taskStatusLabel(x.status), x.completedOn, x.earnedValue]),
         },
       ];
     }
@@ -300,9 +331,11 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Expected", width: 22 },
             { header: "Actual", width: 22 },
             { header: "Status", width: 9 },
-            { header: "Author", width: 16 },
+            { header: "Tester", width: 16 },
+            { header: "Defect ref", width: 8 },
+            { header: "Automated?", width: 7 },
           ],
-          rows: rows.map((r) => [r.testCode, r.date, r.module, r.description, r.type, r.expected, r.actual, r.status, r.authorName]),
+          rows: rows.map((r) => [r.testCode, r.date, r.module, r.description, r.type, r.expected, r.actual, r.status, r.authorName, r.defectRef, r.automated]),
         },
       ];
     }
@@ -325,9 +358,13 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Cum actual h", width: 7, format: "dec" },
             { header: "Cum PV", width: 7, format: "pct" },
             { header: "Cum EV", width: 7, format: "pct" },
-            { header: "Tasks completed", width: 26 },
-            { header: "Risks and issues", width: 26 },
-            { header: "Next week's plan", width: 26 },
+            { header: "EV variance", width: 7, format: "pct" },
+            { header: "Week status", width: 9 },
+            { header: "Met?", width: 5 },
+            { header: "Present", width: 6, format: "int" },
+            { header: "Biggest risk or issue", width: 26 },
+            { header: "Commitment for next week", width: 26 },
+            { header: "Tasks completed (notes)", width: 26 },
           ],
           rows: weeks.map((w) => {
             const r = stored.find((x) => x.week === w);
@@ -344,9 +381,13 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
               fig.scheduleHours.toDate.actual,
               fig.earnedValue.toDate.plan,
               fig.earnedValue.toDate.actual,
-              r?.tasksCompleted,
+              fig.earnedValue.toDate.actual - fig.earnedValue.toDate.plan,
+              WEEK_STATUS_LABELS[weekStatus(fig.earnedValue.toDate.actual - fig.earnedValue.toDate.plan)],
+              r?.met ?? null,
+              r?.present ?? null,
               r?.risksIssues,
               r?.nextWeekPlan,
+              r?.tasksCompleted,
             ];
           }),
         },
@@ -426,16 +467,21 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "No.", width: 5, format: "int" },
             { header: "Date", width: 11 },
             { header: "Requester", width: 16 },
+            { header: "Change type", width: 11 },
             { header: "Component", width: 14 },
-            { header: "Description", width: 30 },
-            { header: "Reason", width: 22 },
+            { header: "What changes", width: 30 },
+            { header: "Why", width: 22 },
+            { header: "Est. h", width: 6, format: "dec" },
+            { header: "M/stone", width: 6 },
+            { header: "Reviewer", width: 16 },
             { header: "Impact", width: 22 },
             { header: "Priority", width: 8 },
-            { header: "Status", width: 11 },
+            { header: "Decision", width: 11 },
+            { header: "Notes", width: 22 },
             { header: "Decided by", width: 16 },
             { header: "Decided at", width: 15 },
           ],
-          rows: rows.map((r) => [r.number, r.date, r.requesterName, r.componentName, r.description, r.reason, r.impact, r.priority, r.status, r.decidedByName, myt(r.decidedAt)]),
+          rows: rows.map((r) => [r.number, r.date, r.requesterName, r.changeType, r.componentName, r.description, r.reason, r.estHours, r.milestoneCode, r.reviewerName, r.impact, r.priority, r.status, r.notes, r.decidedByName, myt(r.decidedAt)]),
         },
       ];
     }

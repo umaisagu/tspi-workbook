@@ -4,6 +4,7 @@ import { parseClock, timeEntryErrors } from "@/lib/tsp/time";
 import { defectPhaseErrors, isDefectType } from "@/lib/tsp/defects";
 import { PHASES } from "@/lib/tsp/phases";
 import { estimatedHours } from "@/lib/tsp/earned-value";
+import { taskStatusErrors } from "@/lib/tsp/tasks";
 import {
   CHATGPT_PLANS,
   CLAUDE_PLANS,
@@ -42,6 +43,12 @@ const optionalText = (max: number) =>
     .nullable()
     .transform((v) => (v ? v : null));
 
+/** A Yes/No select (Workbook v3.0 drop-downs) stored as a boolean. */
+const yesNo = z
+  .union([z.boolean(), z.enum(["yes", "no", ""]), z.null()])
+  .optional()
+  .transform((v) => v === true || v === "yes");
+
 const requiredText = (label: string, max: number) => z.string().trim().min(1, `Enter ${label}`).max(max);
 
 const intField = (label: string, min: number, max: number) =>
@@ -58,6 +65,7 @@ export const timeLogSchema = z
     phase: phaseSchema,
     componentId: optionalId,
     taskId: optionalId,
+    aiUsed: yesNo,
     comments: optionalText(500),
   })
   .superRefine((v, ctx) => {
@@ -80,6 +88,9 @@ export const defectLogSchema = z
     phaseRemoved: phaseSchema,
     fixTimeMin: intField("fix time in minutes", 0, 10000),
     fixRefId: optionalId,
+    severity: z.enum(["CRITICAL", "MAJOR", "MINOR", "COSMETIC"]).default("MINOR"),
+    fromAi: yesNo,
+    fixReference: optionalText(200),
     description: requiredText("a description", 1000),
   })
   .superRefine((v, ctx) => {
@@ -91,27 +102,28 @@ export type DefectLogInput = z.infer<typeof defectLogSchema>;
 
 // ---------- LOGAI ----------
 
-export const aiLogSchema = z.object({
-  date: dateOnlySchema,
-  module: requiredText("the module or requirement ID", 200),
-  tool: requiredText("the tool (e.g. Claude, Codex)", 100),
-  model: requiredText("the exact model", 100),
-  promptSpec: requiredText("the prompt or spec", 5000),
-  outputSummary: requiredText("a summary of the output", 3000),
-  humanRefinement: requiredText("what you changed, corrected or rejected", 3000),
-  testEvidence: requiredText("the test evidence", 2000),
-  prUrl: z
-    .string()
-    .trim()
-    .optional()
-    .nullable()
-    .transform((v) => (v ? v : null))
-    .refine((v) => v === null || /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(v), "Use a GitHub pull request link"),
-  reviewerMembershipId: optionalId,
-});
+/** LOGAI (Workbook v3.0): one row per AI-assisted change that reached the repository. */
+export const aiLogSchema = z
+  .object({
+    date: dateOnlySchema,
+    module: requiredText("the file or module", 200),
+    feature: requiredText("the feature or behaviour", 300),
+    tool: requiredText("the AI tool", 100),
+    promptSpec: requiredText("the prompt (summarised)", 2000),
+    linesGenerated: intField("the lines generated", 0, 100000),
+    linesKept: intField("the lines kept after review", 0, 100000),
+    testsWritten: yesNo,
+    testStatus: z.enum(["PASS", "FAIL", "NOT_RUN"]).default("NOT_RUN"),
+    commitRef: optionalText(200),
+    reviewerMembershipId: optionalId,
+  })
+  .superRefine((v, ctx) => {
+    if (v.linesKept > v.linesGenerated) ctx.addIssue({ code: "custom", path: ["linesKept"], message: "Cannot keep more lines than were generated" });
+  });
 export type AiLogInput = z.infer<typeof aiLogSchema>;
 
-export const aiReviewSchema = z.object({ approved: z.boolean() });
+/** The reviewer's verdict on a LOGAI entry. */
+export const aiReviewSchema = z.object({ verdict: z.enum(["APPROVED", "APPROVED_WITH_CHANGES", "CHANGES_REQUESTED", "REJECTED", "PENDING"]) });
 
 // ---------- FORM-SI ----------
 
@@ -206,13 +218,32 @@ const optionalNumber = (label: string, min: number, max: number) =>
 
 export const sizeMeasureSchema = z.enum(["TEXT_PAGES", "REQ_PAGES", "HLD_PAGES", "DLD_LINES", "LOC"]);
 
+export const taskStatusSchema = z.enum(["PLANNED", "IN_PROGRESS", "COMPLETE", "CARRIED_OVER", "CANCELLED"]);
+
+const optionalCompletedOn = z
+  .union([dateOnlySchema, z.literal(""), z.null(), z.undefined()])
+  .optional()
+  .transform((v) => (v ? v : null));
+
 /**
- * A TASK row. Plan hours are entered, or left empty to use the estimate size / rate (workbook TASK).
- * Plan value, plan week, actual hours and earned value are always computed.
+ * A TASK row (Workbook v3.0). Plan hours are entered, or left empty to use the estimate size / rate. Task ID is
+ * typed or left empty for the next T-number; plan week is typed or left empty to take it from SCHEDULE.
+ * Plan value, actual hours and earned value are always computed; Complete needs the completion date.
  */
 export const taskSchema = z
   .object({
     order: optionalNumber("the order", 0, 100000),
+    code: z
+      .string()
+      .trim()
+      .max(12)
+      .regex(/^[A-Za-z0-9-]*$/, "Use letters, digits and - only, e.g. T07")
+      .optional()
+      .nullable()
+      .transform((v) => (v ? v.toUpperCase() : null)),
+    milestoneId: optionalId,
+    status: taskStatusSchema.default("PLANNED"),
+    planWeek: optionalNumber("the plan week", 1, 30).refine((v) => v === null || Number.isInteger(v), "Enter a week number"),
     name: requiredText("the task name", 200),
     phase: phaseSchema,
     componentId: optionalId,
@@ -224,12 +255,10 @@ export const taskSchema = z
       .optional()
       .transform((v) => (v ? v : null)),
     rate: optionalNumber("the rate", 0, 100000),
-    completedOn: z
-      .union([dateOnlySchema, z.literal(""), z.null(), z.undefined()])
-      .optional()
-      .transform((v) => (v ? v : null)),
+    completedOn: optionalCompletedOn,
   })
   .superRefine((v, ctx) => {
+    for (const [field, message] of Object.entries(taskStatusErrors(v.status, v.completedOn))) ctx.addIssue({ code: "custom", path: [field], message });
     if (v.planHours === null && estimatedHours(v.estSize, v.rate) === null) {
       ctx.addIssue({ code: "custom", path: ["planHours"], message: "Enter plan hours, or a size and rate to estimate them" });
     }
@@ -238,13 +267,13 @@ export const taskSchema = z
   .transform((v) => ({ ...v, planHours: v.planHours ?? estimatedHours(v.estSize, v.rate) ?? 0 }));
 export type TaskInput = z.output<typeof taskSchema>;
 
-/** The assigned member marks a task done (date) or not done (empty). */
-export const taskCompletionSchema = z.object({
-  completedOn: z
-    .union([dateOnlySchema, z.literal(""), z.null(), z.undefined()])
-    .optional()
-    .transform((v) => (v ? v : null)),
-});
+/** The assigned member sets their task's status: Planned, In progress, or Complete with the completion date. */
+export const taskCompletionSchema = z
+  .object({ status: taskStatusSchema.optional(), completedOn: optionalCompletedOn })
+  .transform((v) => ({ completedOn: v.completedOn, status: v.status ?? (v.completedOn ? ("COMPLETE" as const) : ("IN_PROGRESS" as const)) }))
+  .superRefine((v, ctx) => {
+    for (const [field, message] of Object.entries(taskStatusErrors(v.status, v.completedOn))) ctx.addIssue({ code: "custom", path: [field], message });
+  });
 
 // ---------- SCHEDULE ----------
 
@@ -310,11 +339,13 @@ export const testLogSchema = z.object({
     .transform((v) => (v ? v : null)),
   module: requiredText("the module or requirement ID", 200),
   description: requiredText("what the test checks", 1000),
-  type: z.enum(["UNIT", "WIDGET", "INTEGRATION"]),
+  type: z.enum(["UNIT", "WIDGET", "INTEGRATION", "MANUAL", "ACCEPTANCE", "REGRESSION", "PERFORMANCE", "SECURITY"]),
   expected: requiredText("the expected result", 1000),
   actual: optionalText(1000),
   status: z.enum(["PASS", "FAIL", "BLOCKED", "NOT_RUN"]).default("NOT_RUN"),
   date: dateOnlySchema,
+  automated: yesNo,
+  defectRef: optionalText(40),
   /** Team Leader only: record a test for another member. */
   authorMembershipId: optionalId,
 });
@@ -326,6 +357,11 @@ export const weeklyReportSchema = z.object({
   tasksCompleted: optionalText(3000),
   risksIssues: optionalText(3000),
   nextWeekPlan: optionalText(3000),
+  met: z
+    .union([z.boolean(), z.enum(["yes", "no", ""]), z.null()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? null : v === true || v === "yes")),
+  present: optionalNumber("the members present", 0, 10).refine((v) => v === null || Number.isInteger(v), "Enter a whole number"),
   submit: z.boolean().default(false),
 });
 
@@ -367,7 +403,15 @@ export const changeRequestSchema = z.object({
   reason: requiredText("the reason for the change", 2000),
   impact: optionalText(2000),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
-  status: z.enum(["SUBMITTED", "APPROVED", "REJECTED", "IMPLEMENTED"]).default("SUBMITTED"),
+  status: z.enum(["SUBMITTED", "APPROVED", "REJECTED", "DEFERRED", "IMPLEMENTED"]).default("SUBMITTED"),
+  changeType: z
+    .union([z.enum(["REQUIREMENT", "DESIGN", "CODE", "TEST", "DOCUMENT", "BUILD_CI"]), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => (v ? v : null)),
+  estHours: optionalNumber("the estimated hours", 0, 1000),
+  milestoneId: optionalId,
+  reviewerMembershipId: optionalId,
+  notes: optionalText(2000),
 });
 export type ChangeRequestInput = z.infer<typeof changeRequestSchema>;
 

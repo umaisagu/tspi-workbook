@@ -4,7 +4,7 @@
  * Roll-ups by phase, member and component, plus LOGT time not linked to any task.
  */
 
-export type TaskStatus = "done" | "overdue" | "in_progress" | "not_started";
+export type TaskStatus = "done" | "overdue" | "in_progress" | "not_started" | "carried_over" | "cancelled";
 
 export interface SumTaskInput {
   id: string;
@@ -18,6 +18,8 @@ export interface SumTaskInput {
   planWeek: number | null;
   completedWeek: number | null;
   actualHours: number;
+  /** TASK status typed by the team (Workbook v3.0); Cancelled and Carried over are reported as such. */
+  state?: "PLANNED" | "IN_PROGRESS" | "COMPLETE" | "CARRIED_OVER" | "CANCELLED";
 }
 
 export interface SumTaskRow extends SumTaskInput {
@@ -59,10 +61,12 @@ export interface SumTaskResult {
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const r4 = (n: number) => Math.round(n * 10000) / 10000;
 
-export function taskStatus(t: Pick<SumTaskInput, "completedWeek" | "planWeek" | "actualHours">, currentWeek: number): TaskStatus {
+export function taskStatus(t: Pick<SumTaskInput, "completedWeek" | "planWeek" | "actualHours" | "state">, currentWeek: number): TaskStatus {
+  if (t.state === "CANCELLED") return "cancelled";
+  if (t.state === "CARRIED_OVER") return "carried_over";
   if (t.completedWeek !== null) return "done";
   if (t.planWeek !== null && t.planWeek < currentWeek) return "overdue";
-  return t.actualHours > 0 ? "in_progress" : "not_started";
+  return t.actualHours > 0 || t.state === "IN_PROGRESS" ? "in_progress" : "not_started";
 }
 
 function group(key: string, label: string, rows: readonly SumTaskRow[]): SumTaskGroup {

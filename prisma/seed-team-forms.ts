@@ -62,6 +62,8 @@ export async function seedTeamForms(
           ...t,
           actual: status === "PASS" ? t.expected : status === "FAIL" ? "Unexpected result; see defect log" : null,
           status,
+          automated: r() < 0.8,
+          defectRef: status === "FAIL" ? "#1" : null,
           date,
           createdAt: at(myTime(date, 20, 0)),
           updatedAt: at(myTime(date, 20, 0)),
@@ -88,6 +90,8 @@ export async function seedTeamForms(
         tasksCompleted: "SRS draft finished and inspected; proposal submitted for M1.",
         risksIssues: "Client availability for the requirements walkthrough is limited to Saturdays.",
         nextWeekPlan: "Start the SDS (UML, ERD); set up CI; agree coding conventions.",
+        met: true,
+        present: Math.max(1, opts.members.length - (w % 3 === 0 ? 1 : 0)),
         submittedAt,
         submittedById: submittedAt ? leader.userId : null,
         createdAt: stamp,
@@ -128,8 +132,8 @@ export async function seedTeamForms(
   // ----- CCR -----
   const code = opts.components.find((c) => c.role === "code");
   const requests = [
-    { by: opts.members.find((m) => m.focus === "plan") ?? leader, week: 5, status: "APPROVED", description: "Add an offline cache so users can browse saved items without a connection.", reason: "Client feedback at the SRS walkthrough.", priority: "HIGH" },
-    { by: opts.members.find((m) => m.focus === "dev") ?? leader, week: 6, status: "SUBMITTED", description: "Replace manual state handling with Riverpod providers.", reason: "Simplifies testing of the AI feature.", priority: "MEDIUM" },
+    { by: opts.members.find((m) => m.focus === "plan") ?? leader, week: 5, status: "APPROVED", changeType: "REQUIREMENT", estHours: 6, description: "Add an offline cache so users can browse saved items without a connection.", reason: "Client feedback at the SRS walkthrough.", priority: "HIGH" },
+    { by: opts.members.find((m) => m.focus === "dev") ?? leader, week: 6, status: "SUBMITTED", changeType: "DESIGN", estHours: 4, description: "Replace manual state handling with Riverpod providers.", reason: "Simplifies testing of the AI feature.", priority: "MEDIUM" },
   ] as const;
   let number = 0;
   for (const q of requests) {
@@ -149,6 +153,9 @@ export async function seedTeamForms(
         impact: "Requirements FR-03 and FR-05; about 6 extra hours of CODE and UT.",
         priority: q.priority,
         status: q.status,
+        changeType: q.changeType,
+        estHours: q.estHours,
+        reviewerMembershipId: leader.membershipId,
         decidedById: q.status === "SUBMITTED" ? null : leader.userId,
         decidedAt: q.status === "SUBMITTED" ? null : at(new Date(created.getTime() + 86400000)),
         createdAt: created,

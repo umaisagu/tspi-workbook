@@ -3,7 +3,7 @@ import { taskSchema } from "@/lib/schemas/forms";
 import { created } from "@/lib/server/audit";
 import { requireTaskPlan, requireTeamForm } from "@/lib/server/forms/access";
 import { loadPlanning } from "@/lib/server/forms/planning";
-import { assertComponent, assertTeammate, logDate } from "@/lib/server/forms/refs";
+import { assertComponent, assertTeamMilestone, assertTeammate, logDate, taskCode } from "@/lib/server/forms/refs";
 import { ok, parseJson, route } from "@/lib/server/http";
 
 export const GET = route(async (_req, { params }: RouteContext<"/api/teams/[id]/tasks">) => {
@@ -20,6 +20,8 @@ export const POST = route(async (req, { params }: RouteContext<"/api/teams/[id]/
   const input = await parseJson(req, taskSchema);
   await assertComponent(id, input.componentId);
   await assertTeammate(id, input.assigneeMembershipId, "", "assigneeMembershipId");
+  await assertTeamMilestone(id, input.milestoneId);
+  const code = await taskCode(id, input.code);
   const last = await db.task.aggregate({ where: { teamId: id, deletedAt: null }, _max: { order: true } });
   const task = await db.task.create({
     data: {
@@ -34,6 +36,10 @@ export const POST = route(async (req, { params }: RouteContext<"/api/teams/[id]/
       sizeMeasure: input.sizeMeasure,
       rate: input.rate,
       completedOn: input.completedOn ? logDate(input.completedOn, "completedOn") : null,
+      code,
+      milestoneId: input.milestoneId,
+      status: input.status,
+      planWeek: input.planWeek,
       ...created(user.userId),
     },
   });

@@ -26,6 +26,11 @@ describe("taskStatus", () => {
     expect(taskStatus({ completedWeek: null, planWeek: 7, actualHours: 2 }, 7)).toBe("in_progress");
     expect(taskStatus({ completedWeek: null, planWeek: null, actualHours: 0 }, 7)).toBe("not_started");
   });
+  it("reports the team's Cancelled, Carried over and In progress statuses", () => {
+    expect(taskStatus({ completedWeek: null, planWeek: 3, actualHours: 0, state: "CANCELLED" }, 7)).toBe("cancelled");
+    expect(taskStatus({ completedWeek: null, planWeek: 3, actualHours: 4, state: "CARRIED_OVER" }, 7)).toBe("carried_over");
+    expect(taskStatus({ completedWeek: null, planWeek: 9, actualHours: 0, state: "IN_PROGRESS" }, 7)).toBe("in_progress");
+  });
 });
 
 describe("summariseTasks", () => {
