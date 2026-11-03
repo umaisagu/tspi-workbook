@@ -79,3 +79,35 @@ export function checkRoster(members: readonly RosterMember[]): RosterCheck {
 export function leavesTeamWithoutLeader(members: readonly RosterMember[]): boolean {
   return members.length > 0 && !members.some((m) => m.roles.includes("TEAM_LEADER"));
 }
+
+/** Index of the milestone in progress: the first not yet due (milestones sorted by due date), else the last. */
+export function currentMilestoneIndex(milestones: readonly { dueAt: Date }[], now: Date): number {
+  if (milestones.length === 0) return -1;
+  const i = milestones.findIndex((m) => m.dueAt.getTime() >= now.getTime());
+  return i === -1 ? milestones.length - 1 : i;
+}
+
+/**
+ * The milestone whose role matrix applies now (Workbook v3.0 ROLES): the milestone in progress if the team has
+ * filled it, else the latest earlier milestone it filled, else the first later one. Null when nothing is filled.
+ */
+export function roleMilestoneId(
+  milestones: readonly { id: string; dueAt: Date }[],
+  filled: ReadonlySet<string>,
+  now: Date,
+): string | null {
+  const sorted = [...milestones].sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
+  const cur = currentMilestoneIndex(sorted, now);
+  for (let i = cur; i >= 0; i--) if (filled.has(sorted[i]!.id)) return sorted[i]!.id;
+  for (let i = cur + 1; i < sorted.length; i++) if (filled.has(sorted[i]!.id)) return sorted[i]!.id;
+  return null;
+}
+
+/** Workbook v3.0 ROLES "Role load check" reading for one member across milestones (role counts, one per milestone). */
+export function roleLoadReading(counts: readonly number[]): string {
+  if (counts.some((c) => c > MAX_ROLES_PER_MEMBER)) return "Holds more than two roles in a milestone";
+  if (counts.some((c) => c === 0)) return "Has no role in at least one milestone";
+  const doubles = counts.filter((c) => c === 2).length;
+  if (doubles > 1) return "Doubles up in more than one milestone";
+  return doubles === 1 ? "Doubles up once" : "One role each milestone";
+}

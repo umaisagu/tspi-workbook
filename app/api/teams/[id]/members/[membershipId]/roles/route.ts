@@ -6,7 +6,7 @@ import { setRoles } from "@/lib/server/roster";
 export const PUT = route(async (req, { params }: RouteContext<"/api/teams/[id]/members/[membershipId]/roles">) => {
   const { id, membershipId } = await params;
   const { user, team } = await requireRosterManager(id);
-  const { roles } = await parseJson(req, setRolesSchema);
-  const check = await setRoles(user, team, membershipId, roles);
+  const { roles, milestoneId } = await parseJson(req, setRolesSchema);
+  const check = await setRoles(user, team, membershipId, roles, milestoneId);
   return ok({ warnings: check.warnings });
 });

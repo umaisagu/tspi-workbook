@@ -62,7 +62,9 @@ export const teamCreateSchema = z.object({
 });
 export const teamUpdateSchema = teamCreateSchema.partial();
 
-export const setRolesSchema = z.object({ roles: z.array(tspiRoleSchema).max(6) });
+/** One member's roles in one milestone (default: the milestone in progress). */
+export const setRolesSchema = z.object({ roles: z.array(tspiRoleSchema).max(6), milestoneId: z.string().min(1).optional() });
+export const copyRolesSchema = z.object({ fromMilestoneId: z.string().min(1) });
 
 export const userUpdateSchema = z.object({
   appRole: appRoleSchema.optional(),

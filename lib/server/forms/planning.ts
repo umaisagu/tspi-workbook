@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { loadOneTeamRoles, rolesOf } from "@/lib/server/roles";
 import { buildSchedule, estimatedHours, sortTasks } from "@/lib/tsp/earned-value";
 import { formatDateOnly, localDate, weekOf } from "@/lib/tsp/calendar";
 import { PHASES } from "@/lib/tsp/phases";
@@ -22,7 +23,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
       include: { component: { select: { name: true } }, milestone: { select: { code: true } }, assignee: { include: { user: { select: { name: true } } } } },
     }),
     db.scheduleWeek.findMany({ where: { teamId } }),
-    db.membership.findMany({ where: { teamId }, include: { user: { select: { name: true } }, roles: true }, orderBy: { joinedAt: "asc" } }),
+    db.membership.findMany({ where: { teamId }, include: { user: { select: { name: true } } }, orderBy: { joinedAt: "asc" } }),
     db.timeLog.findMany({
       where: { deletedAt: null, membership: { teamId } },
       select: { date: true, deltaMin: true, taskId: true, membershipId: true },
@@ -106,6 +107,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
     };
   });
 
+  const teamRoles = await loadOneTeamRoles(teamId, now);
   const milestones = await db.milestone.findMany({ where: { semesterId: semester.id }, orderBy: { dueAt: "asc" }, select: { id: true, code: true, week: true } });
   const memberName = new Map(members.map((m) => [m.id, m.user.name]));
   const sumtask = summariseTasks(
@@ -139,7 +141,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
 
   return {
     teamId,
-    members: members.map((m) => ({ id: m.id, name: m.user.name, roles: m.roles.map((r) => r.role), active: m.leftAt === null })),
+    members: members.map((m) => ({ id: m.id, name: m.user.name, roles: rolesOf(teamRoles, m.id), active: m.leftAt === null })),
     /** LOGT hours per member per week */
     memberWeekHours: [...memberWeek.entries()].map(([k, hours]) => {
       const [memberId, week] = k.split("|");

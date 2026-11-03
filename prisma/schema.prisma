@@ -266,6 +266,7 @@ model Milestone {
   peerEvaluations PeerEvaluation[]
   tasks           Task[]
   changeRequests  ChangeRequest[]
+  roleAssignments RoleAssignment[]
 
   @@unique([semesterId, code])
 }
@@ -367,14 +368,19 @@ model Membership {
 
 /// TSPi role held by a member. In a 6-member team two members share one role.
 /// Holding TEAM_LEADER grants the app's Team Leader permissions.
+/// Workbook v3.0 ROLES: who holds which role in each milestone. The milestone in progress decides permissions
+/// (lib/server/roles.ts; a milestone the team has not filled yet falls back to the latest earlier one).
 model RoleAssignment {
   membershipId String
   membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
   role         TspiRole
+  milestoneId  String
+  milestone    Milestone  @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
   createdById  String?
 
-  @@id([membershipId, role])
+  @@id([membershipId, role, milestoneId])
+  @@index([milestoneId])
 }
 
 // ---------- Individual forms ----------

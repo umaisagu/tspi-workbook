@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkRoster, leavesTeamWithoutLeader, type RosterMember } from "./roles";
+import { checkRoster, currentMilestoneIndex, leavesTeamWithoutLeader, roleLoadReading, roleMilestoneId, type RosterMember } from "./roles";
 
 const five: RosterMember[] = [
   { membershipId: "1", name: "Aina", roles: ["TEAM_LEADER", "SUPPORT_MANAGER"] },
@@ -52,5 +52,33 @@ describe("leavesTeamWithoutLeader", () => {
     expect(leavesTeamWithoutLeader(five)).toBe(false);
     expect(leavesTeamWithoutLeader(five.slice(1))).toBe(true);
     expect(leavesTeamWithoutLeader([])).toBe(false);
+  });
+});
+
+describe("roles per milestone (v3.0 ROLES)", () => {
+  const ms = [
+    { id: "m1", dueAt: new Date("2026-10-25T15:59:00Z") },
+    { id: "m2", dueAt: new Date("2026-11-20T15:59:00Z") },
+    { id: "m3", dueAt: new Date("2026-12-20T15:59:00Z") },
+  ];
+  it("finds the milestone in progress", () => {
+    expect(currentMilestoneIndex(ms, new Date("2026-10-01"))).toBe(0);
+    expect(currentMilestoneIndex(ms, new Date("2026-11-01"))).toBe(1);
+    expect(currentMilestoneIndex(ms, new Date("2027-02-01"))).toBe(2);
+    expect(currentMilestoneIndex([], new Date())).toBe(-1);
+  });
+  it("uses the current milestone's roles, else the latest earlier filled one, else a later one", () => {
+    const now = new Date("2026-11-01");
+    expect(roleMilestoneId(ms, new Set(["m1", "m2"]), now)).toBe("m2");
+    expect(roleMilestoneId(ms, new Set(["m1"]), now)).toBe("m1");
+    expect(roleMilestoneId(ms, new Set(["m3"]), now)).toBe("m3");
+    expect(roleMilestoneId(ms, new Set(), now)).toBeNull();
+  });
+  it("reads the role load like the workbook", () => {
+    expect(roleLoadReading([1, 1, 1, 1])).toBe("One role each milestone");
+    expect(roleLoadReading([2, 1, 1, 1])).toBe("Doubles up once");
+    expect(roleLoadReading([2, 2, 1, 1])).toBe("Doubles up in more than one milestone");
+    expect(roleLoadReading([1, 0, 1, 1])).toBe("Has no role in at least one milestone");
+    expect(roleLoadReading([3, 1, 1, 1])).toBe("Holds more than two roles in a milestone");
   });
 });
