@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import type { WeekReport, PlanActualPair } from "@/lib/tsp/week";
+import { WEEK_STATUS_LABELS, weekStatus, type PlanActualPair, type WeekReport } from "@/lib/tsp/week";
 import { roleLabel } from "@/lib/tsp/roles";
 import type { TspiRole } from "@/generated/prisma/enums";
-import { Alert, Button, Field, sendJson } from "@/components/ui/form";
-import { Card } from "@/components/ui/card";
+import { Alert, Button, Field, Input, Select, sendJson } from "@/components/ui/form";
+import { Badge, Card } from "@/components/ui/card";
 import { StatusBadge } from "./status-badge";
 import { num, pct } from "./format";
 
@@ -32,7 +32,15 @@ export function WeekForm({
   teamId: string;
   list: WeekListItem[];
   week: number | null;
-  report: { tasksCompleted: string | null; risksIssues: string | null; nextWeekPlan: string | null; submittedAt: string | null; snapshot: WeekReport | null } | null;
+  report: {
+    tasksCompleted: string | null;
+    risksIssues: string | null;
+    nextWeekPlan: string | null;
+    met: boolean | null;
+    present: number | null;
+    submittedAt: string | null;
+    snapshot: WeekReport | null;
+  } | null;
   live: WeekReport | null;
   canEdit: boolean;
 }) {
@@ -43,22 +51,26 @@ export function WeekForm({
     risksIssues: report?.risksIssues ?? "",
     nextWeekPlan: report?.nextWeekPlan ?? "",
   });
+  const [met, setMet] = useState(report?.met === null || report?.met === undefined ? "" : report.met ? "yes" : "no");
+  const [present, setPresent] = useState(report?.present === null || report?.present === undefined ? "" : String(report.present));
   const [error, setError] = useState<string>();
   const [saved, setSaved] = useState<string>();
   const [pending, setPending] = useState(false);
 
-  if (week === null || !live) return <Alert kind="info">Weekly status reports start in Week 5.</Alert>;
+  if (week === null || !live) return <Alert kind="info">Weekly status reports start in Week 3.</Alert>;
   const figures = report?.snapshot ?? live;
+  // Reports submitted before the v3.0 status existed: compute it from their frozen earned value.
+  const status = figures.status ?? weekStatus(figures.earnedValue.toDate.actual - figures.earnedValue.toDate.plan);
   const current = list.find((l) => l.week === week);
 
   async function save(submit: boolean) {
     if (submit && !text.risksIssues.trim() && !text.nextWeekPlan.trim()) {
-      setError("Fill in risks and issues and next week's plan before submitting.");
+      setError("Fill in the biggest risk or issue and next week's commitment before submitting.");
       return;
     }
     setPending(true);
     setError(undefined);
-    const r = await sendJson(`/api/teams/${teamId}/week/${week}`, "PUT", { ...text, submit });
+    const r = await sendJson(`/api/teams/${teamId}/week/${week}`, "PUT", { ...text, met, present, submit });
     setPending(false);
     if (!r.ok) return setError(r.error);
     setSaved(submit ? "Submitted." : "Draft saved.");
@@ -93,7 +105,14 @@ export function WeekForm({
       </p>
 
       <div className="grid gap-5 xl:grid-cols-2 [&>*]:min-w-0">
-        <Card title={`Weekly data — week ${week}`}>
+        <Card
+          title={`Weekly data — week ${week}`}
+          actions={
+            <Badge tone={status === "ON_TRACK" ? "green" : status === "AT_RISK" ? "amber" : "red"}>
+              {WEEK_STATUS_LABELS[status]} · EV variance {pct(figures.earnedValue.toDate.actual - figures.earnedValue.toDate.plan)}
+            </Badge>
+          }
+        >
           <div className="-mx-4 overflow-x-auto sm:mx-0">
             <table className="min-w-full text-sm">
               <thead>
@@ -166,11 +185,23 @@ export function WeekForm({
         <div className="space-y-3">
           {error && <Alert>{error}</Alert>}
           {saved && <Alert kind="success">{saved}</Alert>}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Met this week?">
+              <Select value={met} disabled={!canEdit} onChange={(e) => setMet(e.target.value)}>
+                <option value="">—</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </Select>
+            </Field>
+            <Field label="Members present">
+              <Input type="number" min={0} max={10} value={present} disabled={!canEdit} onChange={(e) => setPresent(e.target.value)} />
+            </Field>
+          </div>
           {(
             [
+              ["risksIssues", "Biggest risk or issue this week", "What could stop the team, and what you are doing about it"],
+              ["nextWeekPlan", "Commitment for next week", "One line: what the team will have finished by the next meeting"],
               ["tasksCompleted", "Tasks completed (notes)", "Highlights of what was finished this week"],
-              ["risksIssues", "Risks and issues", "What could stop the team, and what you are doing about it"],
-              ["nextWeekPlan", "Next week's plan", "Tasks, owners and meetings for next week"],
             ] as const
           ).map(([k, label, hint]) => (
             <Field key={k} label={label}>

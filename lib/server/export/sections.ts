@@ -9,7 +9,7 @@ import { TSPI_ROLES } from "@/lib/tsp/roles";
 import { taskStatusLabel } from "@/lib/tsp/tasks";
 import { keepRate, verdictLabel } from "@/lib/tsp/ai-log";
 import { formatDateOnly } from "@/lib/tsp/calendar";
-import { reportWeeks, submissionStatus, weekReportDueAt, type WeekReport } from "@/lib/tsp/week";
+import { WEEK_STATUS_LABELS, reportWeeks, submissionStatus, weekReportDueAt, weekStatus, type WeekReport } from "@/lib/tsp/week";
 import { listAiLogs, listDefectLogs, listTimeLogs } from "@/lib/server/forms/logs";
 import { loadPlanning, type Planning } from "@/lib/server/forms/planning";
 import { loadSums, loadSumpSumq } from "@/lib/server/forms/quality";
@@ -358,9 +358,13 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Cum actual h", width: 7, format: "dec" },
             { header: "Cum PV", width: 7, format: "pct" },
             { header: "Cum EV", width: 7, format: "pct" },
-            { header: "Tasks completed", width: 26 },
-            { header: "Risks and issues", width: 26 },
-            { header: "Next week's plan", width: 26 },
+            { header: "EV variance", width: 7, format: "pct" },
+            { header: "Week status", width: 9 },
+            { header: "Met?", width: 5 },
+            { header: "Present", width: 6, format: "int" },
+            { header: "Biggest risk or issue", width: 26 },
+            { header: "Commitment for next week", width: 26 },
+            { header: "Tasks completed (notes)", width: 26 },
           ],
           rows: weeks.map((w) => {
             const r = stored.find((x) => x.week === w);
@@ -377,9 +381,13 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
               fig.scheduleHours.toDate.actual,
               fig.earnedValue.toDate.plan,
               fig.earnedValue.toDate.actual,
-              r?.tasksCompleted,
+              fig.earnedValue.toDate.actual - fig.earnedValue.toDate.plan,
+              WEEK_STATUS_LABELS[weekStatus(fig.earnedValue.toDate.actual - fig.earnedValue.toDate.plan)],
+              r?.met ?? null,
+              r?.present ?? null,
               r?.risksIssues,
               r?.nextWeekPlan,
+              r?.tasksCompleted,
             ];
           }),
         },
@@ -459,16 +467,21 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "No.", width: 5, format: "int" },
             { header: "Date", width: 11 },
             { header: "Requester", width: 16 },
+            { header: "Change type", width: 11 },
             { header: "Component", width: 14 },
-            { header: "Description", width: 30 },
-            { header: "Reason", width: 22 },
+            { header: "What changes", width: 30 },
+            { header: "Why", width: 22 },
+            { header: "Est. h", width: 6, format: "dec" },
+            { header: "M/stone", width: 6 },
+            { header: "Reviewer", width: 16 },
             { header: "Impact", width: 22 },
             { header: "Priority", width: 8 },
-            { header: "Status", width: 11 },
+            { header: "Decision", width: 11 },
+            { header: "Notes", width: 22 },
             { header: "Decided by", width: 16 },
             { header: "Decided at", width: 15 },
           ],
-          rows: rows.map((r) => [r.number, r.date, r.requesterName, r.componentName, r.description, r.reason, r.impact, r.priority, r.status, r.decidedByName, myt(r.decidedAt)]),
+          rows: rows.map((r) => [r.number, r.date, r.requesterName, r.changeType, r.componentName, r.description, r.reason, r.estHours, r.milestoneCode, r.reviewerName, r.impact, r.priority, r.status, r.notes, r.decidedByName, myt(r.decidedAt)]),
         },
       ];
     }

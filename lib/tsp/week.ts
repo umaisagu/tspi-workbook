@@ -1,6 +1,6 @@
 /**
  * WEEK: weekly status report (workbook WEEK sheet) plus the course's typed sections
- * (risks and issues, next week's plan). Reports run from Week 5 (CLAUDE.md decision 5) and are
+ * (risks and issues, next week's plan). Reports run from Week 3 (Workbook v3.0 WEEK sheet) and are
  * due before the following Wednesday lab (16:00 Malaysia time).
  */
 import { myTime, weekStart } from "./calendar";
@@ -50,6 +50,20 @@ const pair = (plan: number, actual: number, round = r2): PlanActualPair => ({
   ratio: actual === 0 ? null : r2(plan / actual),
 });
 
+export type WeekStatus = "ON_TRACK" | "AT_RISK" | "BEHIND";
+
+/**
+ * Workbook v3.0 WEEK status from the EV variance (cum EV − cum PV, fractions): below −0.10 Behind, below −0.02 At risk,
+ * otherwise On track.
+ */
+export function weekStatus(variance: number): WeekStatus {
+  if (variance < -0.1) return "BEHIND";
+  if (variance < -0.02) return "AT_RISK";
+  return "ON_TRACK";
+}
+
+export const WEEK_STATUS_LABELS: Record<WeekStatus, string> = { ON_TRACK: "On track", AT_RISK: "At risk", BEHIND: "Behind" };
+
 export function weekReport(input: WeekInput) {
   const { week } = input;
   const planIn = (pred: (w: number) => boolean) => {
@@ -64,11 +78,15 @@ export function weekReport(input: WeekInput) {
   const toDate = (w: number) => w <= week;
   const doneToDate = input.tasks.filter((t) => t.completedWeek !== null && t.completedWeek <= week);
   const scheduleToDate = pair(planIn(toDate), actualIn(toDate));
+  const evToDate = pair(pvIn(toDate), evIn(toDate), r4);
 
   return {
     week,
     scheduleHours: { thisWeek: pair(planIn(thisWeek), actualIn(thisWeek)), toDate: scheduleToDate },
-    earnedValue: { thisWeek: pair(pvIn(thisWeek), evIn(thisWeek), r4), toDate: pair(pvIn(toDate), evIn(toDate), r4) },
+    earnedValue: { thisWeek: pair(pvIn(thisWeek), evIn(thisWeek), r4), toDate: evToDate },
+    /** Workbook v3.0 WEEK K and L: EV variance (cum EV − cum PV) and the status it gives. */
+    evVariance: r4(evToDate.actual - evToDate.plan),
+    status: weekStatus(evToDate.actual - evToDate.plan),
     /** Plan and actual hours of the tasks completed so far. */
     completedTaskHours: pair(
       doneToDate.reduce((s, t) => s + t.planHours, 0),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reportWeeks, submissionStatus, weekReport, weekReportDueAt, type WeekTask } from "./week";
+import { reportWeeks, submissionStatus, weekReport, weekReportDueAt, weekStatus, type WeekTask } from "./week";
 
 const task = (id: string, assigneeId: string, planWeek: number | null, completedWeek: number | null, planValue: number, planHours = 10, actualHours = 0): WeekTask => ({
   id,
@@ -79,5 +79,14 @@ describe("report weeks and due dates", () => {
     expect(submissionStatus(new Date("2026-10-29T10:00:00Z"), due, new Date())).toBe("late");
     expect(submissionStatus(null, due, new Date("2026-10-30T00:00:00Z"))).toBe("missing");
     expect(submissionStatus(null, due, new Date("2026-10-27T00:00:00Z"))).toBe("open");
+  });
+});
+
+describe("v3.0 WEEK status", () => {
+  it("is Behind below −10 points of EV, At risk below −2, else On track", () => {
+    expect(weekStatus(-0.15)).toBe("BEHIND");
+    expect(weekStatus(-0.05)).toBe("AT_RISK");
+    expect(weekStatus(-0.02)).toBe("ON_TRACK");
+    expect(weekStatus(0.1)).toBe("ON_TRACK");
   });
 });

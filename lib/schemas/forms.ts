@@ -357,6 +357,11 @@ export const weeklyReportSchema = z.object({
   tasksCompleted: optionalText(3000),
   risksIssues: optionalText(3000),
   nextWeekPlan: optionalText(3000),
+  met: z
+    .union([z.boolean(), z.enum(["yes", "no", ""]), z.null()])
+    .optional()
+    .transform((v) => (v === "" || v === null || v === undefined ? null : v === true || v === "yes")),
+  present: optionalNumber("the members present", 0, 10).refine((v) => v === null || Number.isInteger(v), "Enter a whole number"),
   submit: z.boolean().default(false),
 });
 
@@ -398,7 +403,15 @@ export const changeRequestSchema = z.object({
   reason: requiredText("the reason for the change", 2000),
   impact: optionalText(2000),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
-  status: z.enum(["SUBMITTED", "APPROVED", "REJECTED", "IMPLEMENTED"]).default("SUBMITTED"),
+  status: z.enum(["SUBMITTED", "APPROVED", "REJECTED", "DEFERRED", "IMPLEMENTED"]).default("SUBMITTED"),
+  changeType: z
+    .union([z.enum(["REQUIREMENT", "DESIGN", "CODE", "TEST", "DOCUMENT", "BUILD_CI"]), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => (v ? v : null)),
+  estHours: optionalNumber("the estimated hours", 0, 1000),
+  milestoneId: optionalId,
+  reviewerMembershipId: optionalId,
+  notes: optionalText(2000),
 });
 export type ChangeRequestInput = z.infer<typeof changeRequestSchema>;
 

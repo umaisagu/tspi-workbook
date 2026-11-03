@@ -307,6 +307,8 @@ async function TeamFormPage({
         canDecide={leader}
         editableIds={rows.filter((r) => leader || (canEditOwnTeamRow(user, team, r.requesterMembershipId) && r.status === "SUBMITTED")).map((r) => r.id)}
         components={components.map((c) => ({ value: c.id, label: c.name }))}
+        milestones={planning.milestones.map((m) => ({ value: m.id, label: m.code }))}
+        members={teammates.map((t) => ({ value: t.membershipId, label: t.name }))}
       />
     );
   } else if (form === "WEEK") {

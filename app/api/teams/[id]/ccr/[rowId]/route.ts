@@ -3,7 +3,7 @@ import { canDecideChange, canEditOwnTeamRow } from "@/lib/auth/permissions";
 import { changeRequestSchema } from "@/lib/schemas/forms";
 import { updated } from "@/lib/server/audit";
 import { requireTeamForm } from "@/lib/server/forms/access";
-import { assertComponent, logDate } from "@/lib/server/forms/refs";
+import { assertComponent, assertTeamMilestone, assertTeammate, logDate } from "@/lib/server/forms/refs";
 import { HttpError, forbidden, notFound, ok, parseJson, route } from "@/lib/server/http";
 
 async function load(teamId: string, rowId: string) {
@@ -25,6 +25,8 @@ export const PATCH = route(async (req, { params }: RouteContext<"/api/teams/[id]
   const input = await parseJson(req, changeRequestSchema);
   if (input.status !== row.status && !leader) throw new HttpError(403, "Only the Team Leader can change the status of a change request.");
   await assertComponent(id, input.componentId);
+  await assertTeamMilestone(id, input.milestoneId);
+  await assertTeammate(id, input.reviewerMembershipId, "", "reviewerMembershipId");
   const statusChanged = input.status !== row.status;
   await db.changeRequest.update({
     where: { id: rowId },
