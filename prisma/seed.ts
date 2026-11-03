@@ -122,7 +122,7 @@ async function main() {
         name: "Sem 1 2026/2027",
         week1Monday,
         weekCount: 15,
-        breakWeeks: [8],
+        breakWeeks: [],
         isActive: true,
         ...audit,
         milestones: {

@@ -2,8 +2,8 @@
  * TASK and SCHEDULE calculations (workbook Task/Schedule sheets; docs/workbook-formulas.md).
  *
  *  - Plan Value (PV) of a task = task plan hours / total plan hours (a fraction; shown as %).
- *  - Plan week = first schedule week whose cumulative planned hours >= the task's cumulative plan hours
- *    (tasks taken in plan order).
+ *  - Plan week = the week the planner typed (Workbook v3.0 TASK "Plan wk"), or else the first schedule week whose
+ *    cumulative planned hours >= the task's cumulative plan hours (tasks taken in plan order).
  *  - Earned Value (EV) = the task's PV, credited only in the week the task is completed (Actual Date).
  *  - SCHEDULE per week: planned hours, actual hours (LOGT), PV of tasks planned that week, EV of tasks
  *    completed that week, and running totals.
@@ -16,6 +16,8 @@ export interface PlanTask {
   planHours: number;
   /** Semester week the task was completed (Actual Week), or null if not complete. */
   completedWeek: number | null;
+  /** Plan week typed on TASK; overrides the week derived from SCHEDULE. */
+  fixedPlanWeek?: number | null;
 }
 
 export interface TaskPlanResult {
@@ -83,9 +85,9 @@ export function planTasks(tasks: readonly PlanTask[], schedule: ReadonlyMap<numb
     cumHours += t.planHours;
     const pv = total > 0 ? t.planHours / total : 0;
     cumValue += pv;
-    let planWeek: number | null = null;
+    let planWeek: number | null = t.fixedPlanWeek ?? null;
     let cumSchedule = 0;
-    for (const w of weeks) {
+    for (const w of planWeek === null ? weeks : []) {
       cumSchedule += schedule.get(w) ?? 0;
       if (cumSchedule + EPS >= cumHours && cumSchedule > 0) {
         planWeek = w;

@@ -21,6 +21,15 @@ enum AppRole {
 }
 
 /// The five TSPi roles (docs/TSP_Student_Information_Sheet.md, section J).
+/// Workbook v3.0 TASK status (LISTS Task Status). Complete ⇔ completedOn is set.
+enum TaskStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETE
+  CARRIED_OVER
+  CANCELLED
+}
+
 enum TspiRole {
   TEAM_LEADER
   PRODUCT_OWNER
@@ -222,6 +231,7 @@ model Milestone {
   updatedById   String?
 
   peerEvaluations PeerEvaluation[]
+  tasks           Task[]
 
   @@unique([semesterId, code])
 }
@@ -553,6 +563,13 @@ model Task {
   rate                 Decimal?     @db.Decimal(10, 2)
   /// Workbook "Actual Date": the task is 100% complete on this date.
   completedOn          DateTime?    @db.Date
+  /// Workbook v3.0 TASK: Task ID (T01…, unique per team among live tasks), milestone, status and typed plan week.
+  code                 String?
+  milestoneId          String?
+  milestone            Milestone?   @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  status               TaskStatus   @default(PLANNED)
+  /// Plan week typed by the planner; null = taken from SCHEDULE (first week covering the cumulative plan hours).
+  planWeek             Int?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
   createdById          String?

@@ -5,7 +5,7 @@
  */
 import { myTime, weekStart } from "./calendar";
 
-export const FIRST_REPORT_WEEK = 5;
+export const FIRST_REPORT_WEEK = 3;
 
 export interface WeekMember {
   id: string;
@@ -92,7 +92,7 @@ export function weekReport(input: WeekInput) {
 }
 export type WeekReport = ReturnType<typeof weekReport>;
 
-/** Report weeks so far: from Week 5 to the current week, skipping break weeks. */
+/** Report weeks so far: from Week 3 (Workbook v3.0 WEEK sheet) to the current week, skipping break weeks. */
 export function reportWeeks(currentWeek: number, weekCount: number, breakWeeks: readonly number[]): number[] {
   const out: number[] = [];
   for (let w = FIRST_REPORT_WEEK; w <= Math.min(currentWeek, weekCount); w++) if (!breakWeeks.includes(w)) out.push(w);

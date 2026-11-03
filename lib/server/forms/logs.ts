@@ -126,7 +126,7 @@ export async function listComponents(teamId: string) {
 export type ComponentRow = Awaited<ReturnType<typeof listComponents>>[number];
 
 export async function listTaskOptions(teamId: string) {
-  const rows = await db.task.findMany({ where: { teamId, deletedAt: null }, orderBy: { order: "asc" }, select: { id: true, name: true, phase: true } });
+  const rows = await db.task.findMany({ where: { teamId, deletedAt: null }, orderBy: { order: "asc" }, select: { id: true, code: true, name: true, phase: true } });
   return rows;
 }
 

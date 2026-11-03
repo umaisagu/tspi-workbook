@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   const myHoursThisWeek = planning.memberWeekHours.filter((h) => h.memberId === me && h.week === week).reduce((x, h) => x + h.hours, 0);
   const myPlanThisWeek = planning.scheduleByMember.get(me)?.get(week) ?? 0;
   const myOpen = planning.tasks
-    .filter((t) => t.assigneeMembershipId === me && !t.completedOn)
+    .filter((t) => t.assigneeMembershipId === me && !t.completedOn && t.status !== "CANCELLED" && t.status !== "CARRIED_OVER")
     .sort((a, b) => (a.planWeek ?? 99) - (b.planWeek ?? 99));
 
   // Forms due: my forms for the current milestone that are not done, team forms if I lead, reviews waiting.

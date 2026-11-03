@@ -19,7 +19,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
   const [tasks, scheduleRows, members, logs] = await Promise.all([
     db.task.findMany({
       where: { teamId, deletedAt: null },
-      include: { component: { select: { name: true } }, assignee: { include: { user: { select: { name: true } } } } },
+      include: { component: { select: { name: true } }, milestone: { select: { code: true } }, assignee: { include: { user: { select: { name: true } } } } },
     }),
     db.scheduleWeek.findMany({ where: { teamId } }),
     db.membership.findMany({ where: { teamId }, include: { user: { select: { name: true } }, roles: true }, orderBy: { joinedAt: "asc" } }),
@@ -61,6 +61,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
       order: t.order,
       planHours: Number(t.planHours),
       completedWeek: t.completedOn ? weekOf(t.completedOn, week1) : null,
+      fixedPlanWeek: t.planWeek,
     })),
     schedule: scheduleTotal,
     actualHours: actualByWeek,
@@ -76,6 +77,11 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
     return {
       id: t.id,
       order: t.order,
+      code: t.code,
+      milestoneId: t.milestoneId,
+      milestoneCode: t.milestone?.code ?? null,
+      status: t.status,
+      planWeekTyped: t.planWeek,
       name: t.name,
       phase: t.phase,
       componentId: t.componentId,
@@ -100,6 +106,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
     };
   });
 
+  const milestones = await db.milestone.findMany({ where: { semesterId: semester.id }, orderBy: { dueAt: "asc" }, select: { id: true, code: true, week: true } });
   const memberName = new Map(members.map((m) => [m.id, m.user.name]));
   const sumtask = summariseTasks(
     taskRows.map((t) => ({
@@ -114,6 +121,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
       planWeek: t.planWeek,
       completedWeek: t.completedWeek,
       actualHours: t.actualHours,
+      state: t.status,
     })),
     currentWeek,
     [...unlinkedByMember.entries()].map(([id, hours]) => ({ memberId: id, memberName: memberName.get(id) ?? "Former member", hours })),
@@ -147,6 +155,7 @@ export async function loadPlanning(teamId: string, now: Date = new Date()) {
       week1Monday: week1,
     },
     week1: formatDateOnly(week1),
+    milestones,
     currentWeek,
     weeks,
     tasks: taskRows,

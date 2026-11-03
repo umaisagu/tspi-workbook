@@ -63,9 +63,10 @@ describe("weekReport", () => {
 });
 
 describe("report weeks and due dates", () => {
-  it("runs from week 5 to the current week, skipping breaks", () => {
-    expect(reportWeeks(10, 15, [8])).toEqual([5, 6, 7, 9, 10]);
-    expect(reportWeeks(4, 15, [8])).toEqual([]);
+  it("runs from week 3 to the current week, skipping breaks", () => {
+    expect(reportWeeks(10, 15, [8])).toEqual([3, 4, 5, 6, 7, 9, 10]);
+    expect(reportWeeks(6, 15, [])).toEqual([3, 4, 5, 6]);
+    expect(reportWeeks(2, 15, [])).toEqual([]);
   });
   it("is due before the next Wednesday lab (16:00 MYT)", () => {
     const week1 = new Date(Date.UTC(2026, 8, 21));

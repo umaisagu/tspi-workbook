@@ -126,7 +126,7 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
         canEdit={ctx.canEdit}
         hiddenPhases={hidden}
         components={components.map((c) => ({ value: c.id, label: c.name }))}
-        tasks={tasks.map((t) => ({ value: t.id, label: `${t.name} (${t.phase} – ${phaseName(t.phase)})` }))}
+        tasks={tasks.map((t) => ({ value: t.id, label: `${t.code ? `${t.code} · ` : ""}${t.name} (${t.phase} – ${phaseName(t.phase)})` }))}
       />
     );
   } else if (form === "LOGD") {
@@ -260,6 +260,7 @@ async function TeamFormPage({
       <TaskForm
         teamId={team.id}
         rows={planning.tasks}
+        milestones={planning.milestones.map((m) => ({ value: m.id, label: m.code }))}
         canEdit={canEditTaskPlan(user, team)}
         currentWeek={planning.currentWeek}
         ownMembershipId={activeMembershipIn(user, team.id)?.membershipId}

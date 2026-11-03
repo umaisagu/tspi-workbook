@@ -4,6 +4,7 @@ import { parseClock, timeEntryErrors } from "@/lib/tsp/time";
 import { defectPhaseErrors, isDefectType } from "@/lib/tsp/defects";
 import { PHASES } from "@/lib/tsp/phases";
 import { estimatedHours } from "@/lib/tsp/earned-value";
+import { taskStatusErrors } from "@/lib/tsp/tasks";
 import {
   CHATGPT_PLANS,
   CLAUDE_PLANS,
@@ -206,13 +207,32 @@ const optionalNumber = (label: string, min: number, max: number) =>
 
 export const sizeMeasureSchema = z.enum(["TEXT_PAGES", "REQ_PAGES", "HLD_PAGES", "DLD_LINES", "LOC"]);
 
+export const taskStatusSchema = z.enum(["PLANNED", "IN_PROGRESS", "COMPLETE", "CARRIED_OVER", "CANCELLED"]);
+
+const optionalCompletedOn = z
+  .union([dateOnlySchema, z.literal(""), z.null(), z.undefined()])
+  .optional()
+  .transform((v) => (v ? v : null));
+
 /**
- * A TASK row. Plan hours are entered, or left empty to use the estimate size / rate (workbook TASK).
- * Plan value, plan week, actual hours and earned value are always computed.
+ * A TASK row (Workbook v3.0). Plan hours are entered, or left empty to use the estimate size / rate. Task ID is
+ * typed or left empty for the next T-number; plan week is typed or left empty to take it from SCHEDULE.
+ * Plan value, actual hours and earned value are always computed; Complete needs the completion date.
  */
 export const taskSchema = z
   .object({
     order: optionalNumber("the order", 0, 100000),
+    code: z
+      .string()
+      .trim()
+      .max(12)
+      .regex(/^[A-Za-z0-9-]*$/, "Use letters, digits and - only, e.g. T07")
+      .optional()
+      .nullable()
+      .transform((v) => (v ? v.toUpperCase() : null)),
+    milestoneId: optionalId,
+    status: taskStatusSchema.default("PLANNED"),
+    planWeek: optionalNumber("the plan week", 1, 30).refine((v) => v === null || Number.isInteger(v), "Enter a week number"),
     name: requiredText("the task name", 200),
     phase: phaseSchema,
     componentId: optionalId,
@@ -224,12 +244,10 @@ export const taskSchema = z
       .optional()
       .transform((v) => (v ? v : null)),
     rate: optionalNumber("the rate", 0, 100000),
-    completedOn: z
-      .union([dateOnlySchema, z.literal(""), z.null(), z.undefined()])
-      .optional()
-      .transform((v) => (v ? v : null)),
+    completedOn: optionalCompletedOn,
   })
   .superRefine((v, ctx) => {
+    for (const [field, message] of Object.entries(taskStatusErrors(v.status, v.completedOn))) ctx.addIssue({ code: "custom", path: [field], message });
     if (v.planHours === null && estimatedHours(v.estSize, v.rate) === null) {
       ctx.addIssue({ code: "custom", path: ["planHours"], message: "Enter plan hours, or a size and rate to estimate them" });
     }
@@ -238,13 +256,13 @@ export const taskSchema = z
   .transform((v) => ({ ...v, planHours: v.planHours ?? estimatedHours(v.estSize, v.rate) ?? 0 }));
 export type TaskInput = z.output<typeof taskSchema>;
 
-/** The assigned member marks a task done (date) or not done (empty). */
-export const taskCompletionSchema = z.object({
-  completedOn: z
-    .union([dateOnlySchema, z.literal(""), z.null(), z.undefined()])
-    .optional()
-    .transform((v) => (v ? v : null)),
-});
+/** The assigned member sets their task's status: Planned, In progress, or Complete with the completion date. */
+export const taskCompletionSchema = z
+  .object({ status: taskStatusSchema.optional(), completedOn: optionalCompletedOn })
+  .transform((v) => ({ completedOn: v.completedOn, status: v.status ?? (v.completedOn ? ("COMPLETE" as const) : ("IN_PROGRESS" as const)) }))
+  .superRefine((v, ctx) => {
+    for (const [field, message] of Object.entries(taskStatusErrors(v.status, v.completedOn))) ctx.addIssue({ code: "custom", path: [field], message });
+  });
 
 // ---------- SCHEDULE ----------
 

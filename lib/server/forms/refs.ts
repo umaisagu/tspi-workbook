@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { HttpError } from "@/lib/server/http";
 import { formatClock, findOverlap } from "@/lib/tsp/time";
 import { localDate, parseDateOnly } from "@/lib/tsp/calendar";
+import { nextTaskCode } from "@/lib/tsp/tasks";
 
 const invalid = (field: string, message: string) => new HttpError(400, "Please correct the highlighted fields.", { [field]: [message] });
 
@@ -60,4 +61,20 @@ export async function withSequenceRetry<T>(fn: () => Promise<T>, attempts = 3): 
       if (code !== "P2002" || i >= attempts) throw err;
     }
   }
+}
+
+/** A milestone of the team's semester. */
+export async function assertTeamMilestone(teamId: string, milestoneId: string | null): Promise<void> {
+  if (!milestoneId) return;
+  const team = await db.team.findUniqueOrThrow({ where: { id: teamId }, select: { labGroup: { select: { semesterId: true } } } });
+  const m = await db.milestone.findFirst({ where: { id: milestoneId, semesterId: team.labGroup.semesterId }, select: { id: true } });
+  if (!m) throw invalid("milestoneId", "Choose one of this semester's milestones");
+}
+
+/** Task ID: the typed one (unique among the team's live tasks) or the next T-number. */
+export async function taskCode(teamId: string, typed: string | null, exceptTaskId?: string): Promise<string> {
+  const rows = await db.task.findMany({ where: { teamId, deletedAt: null, ...(exceptTaskId ? { id: { not: exceptTaskId } } : {}) }, select: { code: true } });
+  if (!typed) return nextTaskCode(rows.map((r) => r.code));
+  if (rows.some((r) => r.code === typed)) throw invalid("code", `Task ID ${typed} is already used`);
+  return typed;
 }

@@ -9,6 +9,8 @@ const STATUS: Record<TaskStatus, { label: string; tone: "green" | "red" | "blue"
   overdue: { label: "Overdue", tone: "red" },
   in_progress: { label: "In progress", tone: "blue" },
   not_started: { label: "Not started", tone: "slate" },
+  carried_over: { label: "Carried over", tone: "slate" },
+  cancelled: { label: "Cancelled", tone: "slate" },
 };
 
 function GroupTable({ title, groups, total, labelHeader }: { title: string; groups: SumTaskGroup[]; total: SumTaskGroup; labelHeader: string }) {

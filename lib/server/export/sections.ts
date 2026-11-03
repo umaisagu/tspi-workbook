@@ -6,6 +6,7 @@ import { FORM_INFO } from "@/lib/forms";
 import { defectTypeLabel } from "@/lib/tsp/defects";
 import { PEER_CRITERIA, peerTotal } from "@/lib/tsp/peer";
 import { TSPI_ROLES } from "@/lib/tsp/roles";
+import { taskStatusLabel } from "@/lib/tsp/tasks";
 import { formatDateOnly } from "@/lib/tsp/calendar";
 import { reportWeeks, submissionStatus, weekReportDueAt, type WeekReport } from "@/lib/tsp/week";
 import { listAiLogs, listDefectLogs, listTimeLogs } from "@/lib/server/forms/logs";
@@ -192,7 +193,8 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
           title: t,
           notes: [`Total plan hours ${p.schedule.totalTaskPlanHours} · schedule hours ${p.schedule.totalSchedulePlanHours}.`],
           columns: [
-            { header: "#", width: 4, format: "int" },
+            { header: "Task ID", width: 7 },
+            { header: "M/stone", width: 6 },
             { header: "Task", width: 28 },
             { header: "Phase", width: 9 },
             { header: "Component", width: 14 },
@@ -204,10 +206,11 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
             { header: "Cum PV", width: 7, format: "pct" },
             { header: "Plan week", width: 7, format: "int" },
             { header: "Actual h", width: 7, format: "dec" },
+            { header: "Status", width: 10 },
             { header: "Completed", width: 11 },
             { header: "EV", width: 7, format: "pct" },
           ],
-          rows: p.tasks.map((x, i) => [i + 1, x.name, x.phase, x.componentName, x.assigneeName, x.estSize, x.sizeMeasure, x.planHours, x.planValue, x.cumPlanValue, x.planWeek, x.actualHours, x.completedOn, x.earnedValue]),
+          rows: p.tasks.map((x) => [x.code, x.milestoneCode, x.name, x.phase, x.componentName, x.assigneeName, x.estSize, x.sizeMeasure, x.planHours, x.planValue, x.cumPlanValue, x.planWeek, x.actualHours, taskStatusLabel(x.status), x.completedOn, x.earnedValue]),
         },
       ];
     }
