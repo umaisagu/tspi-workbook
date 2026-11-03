@@ -14,7 +14,7 @@ export const phaseSchema = z.enum([
   "CODE", "CR", "COMPILE", "CODEINSP", "UT", "IT", "ST", "DOC", "PM", "AT", "PL",
 ]);
 export const tspiRoleSchema = z.enum([
-  "TEAM_LEADER", "DEVELOPMENT_MANAGER", "PLANNING_MANAGER", "QUALITY_PROCESS_MANAGER", "SUPPORT_MANAGER",
+  "TEAM_LEADER", "PRODUCT_OWNER", "DEVELOPMENT_MANAGER", "PLANNING_MANAGER", "QUALITY_PROCESS_MANAGER", "SUPPORT_MANAGER",
 ]);
 export const appRoleSchema = z.enum(["LECTURER", "DEMONSTRATOR", "STUDENT"]);
 
@@ -62,7 +62,7 @@ export const teamCreateSchema = z.object({
 });
 export const teamUpdateSchema = teamCreateSchema.partial();
 
-export const setRolesSchema = z.object({ roles: z.array(tspiRoleSchema).max(5) });
+export const setRolesSchema = z.object({ roles: z.array(tspiRoleSchema).max(6) });
 
 export const userUpdateSchema = z.object({
   appRole: appRoleSchema.optional(),

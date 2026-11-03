@@ -23,6 +23,7 @@ enum AppRole {
 /// The five TSPi roles (docs/TSP_Student_Information_Sheet.md, section J).
 enum TspiRole {
   TEAM_LEADER
+  PRODUCT_OWNER
   DEVELOPMENT_MANAGER
   PLANNING_MANAGER
   QUALITY_PROCESS_MANAGER

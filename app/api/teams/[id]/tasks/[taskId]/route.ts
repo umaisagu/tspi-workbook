@@ -1,12 +1,12 @@
 import { db } from "@/lib/db";
 import { taskSchema } from "@/lib/schemas/forms";
 import { updated } from "@/lib/server/audit";
-import { requireTeamForm } from "@/lib/server/forms/access";
+import { requireTaskPlan } from "@/lib/server/forms/access";
 import { assertComponent, assertTeammate, logDate } from "@/lib/server/forms/refs";
 import { notFound, ok, parseJson, route } from "@/lib/server/http";
 
 async function load(teamId: string, taskId: string) {
-  const ctx = await requireTeamForm(teamId, "write");
+  const ctx = await requireTaskPlan(teamId);
   const task = await db.task.findFirst({ where: { id: taskId, teamId, deletedAt: null } });
   if (!task) throw notFound("Task");
   return ctx;

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireLecturerPage } from "@/lib/server/page-guards";
 import { Badge, Card, PageHeader } from "@/components/ui/card";
 import { SimpleCreateForm } from "@/components/admin/simple-create-form";
+import { ActionButton } from "@/components/admin/action-button";
 import { formatDateOnly } from "@/lib/tsp/calendar";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -31,6 +32,15 @@ export default async function AdminPage() {
                   {s.labGroups.reduce((n, g) => n + g._count.teams, 0)} teams
                 </div>
               </div>
+              {s.labGroups.length === 0 && (
+                <ActionButton
+                  url={`/api/semesters/${s.id}`}
+                  method="DELETE"
+                  label="Delete"
+                  variant="danger"
+                  confirmText={`Delete semester "${s.name}"${s.isActive ? " (the active semester)" : ""} and its milestones? This cannot be undone.`}
+                />
+              )}
             </li>
           ))}
           {semesters.length === 0 && <li className="py-2 text-sm text-slate-500">No semesters yet.</li>}

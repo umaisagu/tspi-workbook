@@ -9,6 +9,7 @@ import {
   canDecideChange,
   canEditOwnTeamRow,
   canEditScheduleRow,
+  canEditTaskPlan,
   canEditTeamForms,
   canReadTeamForms,
   isStaff,
@@ -231,7 +232,7 @@ export default async function FormPage({ params, searchParams }: PageProps<"/t/[
 
 type TeamWithSemester = Prisma.TeamGetPayload<{ include: { labGroup: { include: { semester: true } } } }>;
 
-/** Team-level forms: TASK, SCHEDULE, SUMTASK (read by the team and its staff; edited by the Team Leader). */
+/** Team-level forms: TASK, SCHEDULE, SUMTASK (read by the team and its staff; edited by the Team Leader; TASK also by the Planning Manager). */
 async function TeamFormPage({
   user,
   team,
@@ -259,8 +260,9 @@ async function TeamFormPage({
       <TaskForm
         teamId={team.id}
         rows={planning.tasks}
-        canEdit={canEdit}
+        canEdit={canEditTaskPlan(user, team)}
         currentWeek={planning.currentWeek}
+        ownMembershipId={activeMembershipIn(user, team.id)?.membershipId}
         hiddenPhases={planning.semester.hiddenPhases}
         components={components.map((c) => ({ value: c.id, label: c.name }))}
         members={teammates.map((t) => ({ value: t.membershipId, label: t.name }))}

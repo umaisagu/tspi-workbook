@@ -70,7 +70,7 @@ const TEAMS: {
       { name: "Chong Mei Ling", matric: "84003", roles: ["PLANNING_MANAGER"], profile: "normal", focus: "plan" },
       { name: "Dayang Nurul Izzah", matric: "84004", roles: ["QUALITY_PROCESS_MANAGER"], profile: "normal", focus: "qa" },
       { name: "Elvis anak Jimbun", matric: "84005", roles: ["SUPPORT_MANAGER"], profile: "inactive", focus: "support", si: "late" },
-      { name: "Farhan Hakimi bin Yusof", matric: "84006", roles: ["DEVELOPMENT_MANAGER"], profile: "low", focus: "dev" },
+      { name: "Farhan Hakimi bin Yusof", matric: "84006", roles: ["PRODUCT_OWNER"], profile: "low", focus: "dev" },
     ],
   },
   {
@@ -81,7 +81,7 @@ const TEAMS: {
     repoUrl: "https://github.com/tma3084-2026/rafflesia-homestay",
     components: ["Authentication", "Booking", "AI Recommendations", "Payments"],
     members: [
-      { name: "Grace Ting Siew Hua", matric: "84011", roles: ["TEAM_LEADER"], profile: "normal", focus: "lead" },
+      { name: "Grace Ting Siew Hua", matric: "84011", roles: ["TEAM_LEADER", "PRODUCT_OWNER"], profile: "normal", focus: "lead" },
       { name: "Haziq Danial bin Osman", matric: "84012", roles: ["DEVELOPMENT_MANAGER"], profile: "backfill", focus: "dev" },
       { name: "Irene anak Kalong", matric: "84013", roles: ["PLANNING_MANAGER"], profile: "normal", focus: "plan" },
       { name: "Jason Wong Kah Seng", matric: "84014", roles: ["QUALITY_PROCESS_MANAGER"], profile: "high", focus: "qa" },

@@ -7,6 +7,7 @@ import { phaseName } from "@/lib/tsp/phases";
 import { estimatedHours } from "@/lib/tsp/earned-value";
 import { Badge } from "@/components/ui/card";
 import { LogTable, type Option } from "./log-table";
+import { TaskComplete } from "./task-complete";
 import { none, phaseOptions } from "./options";
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
@@ -26,6 +27,7 @@ export function TaskForm({
   members,
   hiddenPhases,
   currentWeek,
+  ownMembershipId,
 }: {
   teamId: string;
   rows: TaskRow[];
@@ -34,6 +36,8 @@ export function TaskForm({
   members: Option[];
   hiddenPhases: Phase[];
   currentWeek: number;
+  /** The viewer's membership: a member who is not the leader marks their own tasks done here. */
+  ownMembershipId?: string;
 }) {
   return (
     <LogTable<TaskRow & { week?: number }>
@@ -102,7 +106,16 @@ export function TaskForm({
           className: "text-right",
         },
         { key: "actual", label: "Actual h", render: (r) => r.actualHours, className: "text-right" },
-        { key: "done", label: "Completed", render: (r) => <span className="whitespace-nowrap">{r.completedOn ?? "—"}</span> },
+        {
+          key: "done",
+          label: "Completed",
+          render: (r) =>
+            !canEdit && ownMembershipId && r.assigneeMembershipId === ownMembershipId ? (
+              <TaskComplete teamId={teamId} taskId={r.id} completedOn={r.completedOn} taskName={r.name} />
+            ) : (
+              <span className="whitespace-nowrap">{r.completedOn ?? "—"}</span>
+            ),
+        },
         { key: "aw", label: "Actual wk", render: (r) => r.completedWeek ?? "—", className: "text-right" },
         {
           key: "ev",

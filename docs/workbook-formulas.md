@@ -1,5 +1,9 @@
 # TSPi workbook formulas
 
+> **Superseded in part.** The lecturer's TSPi Workbook v3.0 (`docs/workbook-v3/`) replaces the 2002 workbook described
+> below; where they differ, v3.0 wins. The app is being aligned in stages (CLAUDE.md, decision 15). Until stage 3, the
+> phase list and SUMP/SUMQ formulas below are still the ones the app computes.
+
 Extracted from `docs/TSPI_WORKBOOK20020301.xls` (sheet values with xlrd, cell formulas via
 LibreOffice → openpyxl, VBA macros via olevba). Reproduce with `scripts/extract-workbook.py`.
 These are the formulas implemented in `/lib/tsp`. Where the app deliberately differs, it says so.

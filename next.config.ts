@@ -15,7 +15,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["pg", "@prisma/adapter-pg", "pdfkit", "exceljs"],
   // pdfkit reads its standard-font metrics (.afm) from disk at runtime; make sure they are deployed.
-  outputFileTracingIncludes: { "/api/export/**": ["./node_modules/pdfkit/js/data/**"] },
+  // The Reference downloads read the lecturer's workbooks from docs/workbook-v3/.
+  outputFileTracingIncludes: {
+    "/api/export/**": ["./node_modules/pdfkit/js/data/**"],
+    "/api/reference/**": ["./docs/workbook-v3/*.xlsx"],
+  },
   turbopack: {
     rules: {
       "*.css": {

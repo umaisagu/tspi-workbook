@@ -5,6 +5,7 @@ import {
   activeMembershipIn,
   canReadPeer,
   canEditIndividualForm,
+  canEditTaskPlan,
   canEditTeamForms,
   canReadIndividualForm,
   canReadTeamForms,
@@ -64,4 +65,11 @@ export async function requireTeamForm(teamId: string, mode: "read" | "write"): P
   if (!canReadTeamForms(user, team)) throw notFound("Team");
   if (mode === "write" && !canEditTeamForms(user, team)) throw forbidden();
   return { user, team };
+}
+
+/** TASK plan changes: the Team Leader or the Planning Manager. */
+export async function requireTaskPlan(teamId: string): Promise<TeamContext> {
+  const ctx = await requireTeamForm(teamId, "read");
+  if (!canEditTaskPlan(ctx.user, ctx.team)) throw forbidden();
+  return ctx;
 }

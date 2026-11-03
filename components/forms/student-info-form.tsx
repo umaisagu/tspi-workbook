@@ -399,7 +399,7 @@ export function StudentInfoForm({
             {TSPI_ROLES.map((r) => (
               <div key={r.role} className="grid gap-2 sm:grid-cols-[1fr_7rem] sm:items-center">
                 <span className="text-sm">
-                  <span className="font-medium">{r.label}</span> <span className="text-slate-500">({r.projectRole})</span>
+                  <span className="font-medium">{r.label}</span> <span className="block text-xs text-slate-500">{r.owns}</span>
                 </span>
                 <Field label="" error={err(`rolePreferences.${r.role}`)}>
                   <Select

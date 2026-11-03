@@ -11,6 +11,8 @@ import {
   canReadPeer,
   canReadComments,
   canEditScheduleRow,
+  canCompleteTask,
+  canEditTaskPlan,
   canEditOwnTeamRow,
   canAddTeamRow,
   canDecideChange,
@@ -42,6 +44,12 @@ const formerMemberA: Viewer = {
   userId: "S3",
   appRole: "STUDENT",
   memberships: [{ membershipId: "mA3", teamId: "teamA", labGroupId: "g1", roles: ["TEAM_LEADER"], active: false }],
+  demonstratorLabGroupIds: [],
+};
+const qualityA: Viewer = {
+  userId: "S5",
+  appRole: "STUDENT",
+  memberships: [{ membershipId: "mA4", teamId: "teamA", labGroupId: "g1", roles: ["QUALITY_PROCESS_MANAGER"], active: true }],
   demonstratorLabGroupIds: [],
 };
 // A student who was (wrongly) also marked demonstrator data-wise must not gain demonstrator rights.
@@ -167,6 +175,26 @@ describe("member-owned team rows (LOGTEST, CCR)", () => {
     expect(canEditOwnTeamRow(memberA, teamA, "mA1")).toBe(false);
     expect(canEditOwnTeamRow(leaderA, teamA, "mA2")).toBe(true);
     expect(canEditOwnTeamRow(demoG1, teamA, "mA2")).toBe(false);
+  });
+  it("the Team Leader and the Planning Manager edit the TASK plan; other members, former members and staff do not", () => {
+    expect(canEditTaskPlan(leaderA, teamA)).toBe(true);
+    expect(canEditTaskPlan(memberA, teamA)).toBe(true); // Planning Manager
+    expect(canEditTaskPlan(memberA, teamB)).toBe(false);
+    expect(canEditTaskPlan(qualityA, teamA)).toBe(false);
+    expect(canEditTaskPlan(formerMemberA, teamA)).toBe(false);
+    expect(canEditTaskPlan(lecturer, teamA)).toBe(false);
+    expect(canEditTaskPlan(demoG1, teamA)).toBe(false);
+  });
+  it("the assignee completes their own task; the plan editors any task, assigned or not", () => {
+    expect(canCompleteTask(qualityA, teamA, "mA4")).toBe(true);
+    expect(canCompleteTask(qualityA, teamA, "mA1")).toBe(false);
+    expect(canCompleteTask(qualityA, teamA, null)).toBe(false);
+    expect(canCompleteTask(leaderA, teamA, "mA4")).toBe(true);
+    expect(canCompleteTask(leaderA, teamA, null)).toBe(true);
+    expect(canCompleteTask(memberA, teamA, "mA4")).toBe(true);
+    expect(canCompleteTask(formerMemberA, teamA, "mA3")).toBe(false);
+    expect(canCompleteTask(lecturer, teamA, "mA4")).toBe(false);
+    expect(canCompleteTask(demoG1, teamA, "mA4")).toBe(false);
   });
   it("only the team leader decides change requests", () => {
     expect(canDecideChange(leaderA, teamA)).toBe(true);
