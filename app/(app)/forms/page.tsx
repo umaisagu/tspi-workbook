@@ -39,6 +39,7 @@ export default async function FormsPage() {
       </>
     ),
     PEER: <Badge>{peers.length} submitted</Badge>,
+    MYSUM: <Badge>computed</Badge>,
   };
   return (
     <div className="space-y-5">

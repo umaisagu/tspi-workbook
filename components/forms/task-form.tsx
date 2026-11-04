@@ -9,16 +9,11 @@ import { Badge } from "@/components/ui/card";
 import { LogTable, type Option } from "./log-table";
 import { TaskComplete } from "./task-complete";
 import { TASK_STATUSES, taskStatusLabel } from "@/lib/tsp/tasks";
+import { SIZE_MEASURES as SIZE_MEASURE_LIST } from "@/lib/tsp/sizes";
 import { none, phaseOptions } from "./options";
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
-export const SIZE_MEASURES: Option[] = [
-  { value: "LOC", label: "LOC" },
-  { value: "TEXT_PAGES", label: "Text pages" },
-  { value: "REQ_PAGES", label: "Requirements pages" },
-  { value: "HLD_PAGES", label: "HLD pages" },
-  { value: "DLD_LINES", label: "DLD lines" },
-];
+export const SIZE_MEASURES: Option[] = SIZE_MEASURE_LIST.map((m) => ({ ...m }));
 
 export function TaskForm({
   teamId,

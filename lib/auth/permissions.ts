@@ -99,6 +99,18 @@ export function canEditTaskPlan(v: Viewer, team: TeamRef): boolean {
   return roles.includes("TEAM_LEADER") || roles.includes("PLANNING_MANAGER");
 }
 
+/** SUMS sizes and the SUMP plan (typed planned defects): the Team Leader and the Planning Manager (v3.0 owner). */
+export function canEditSizePlan(v: Viewer, team: TeamRef): boolean {
+  const roles = activeMembershipIn(v, team.id)?.roles ?? [];
+  return roles.includes("TEAM_LEADER") || roles.includes("PLANNING_MANAGER");
+}
+
+/** SUMQ plan (injection rates, yields) and the CI coverage figure: the Team Leader and the Quality & Test Manager (v3.0 owner). */
+export function canEditQualityPlan(v: Viewer, team: TeamRef): boolean {
+  const roles = activeMembershipIn(v, team.id)?.roles ?? [];
+  return roles.includes("TEAM_LEADER") || roles.includes("QUALITY_PROCESS_MANAGER");
+}
+
 /** TASK completion: the assigned member marks their own task done (or not yet); whoever edits the plan, any task. */
 export function canCompleteTask(v: Viewer, team: TeamRef, assigneeMembershipId: string | null): boolean {
   if (canEditTaskPlan(v, team)) return true;

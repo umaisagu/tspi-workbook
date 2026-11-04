@@ -82,24 +82,33 @@ enum Phase {
   TD
   DLDINSP
   CODE
+  AIGEN
   CR
-  COMPILE
+  BUILD
   CODEINSP
   UT
+  WT
   IT
+  CICD
   ST
+  UAT
   DOC
   PM
-  AT
   PL
 }
 
+/// v3.0 size measures: SRS/SDD pages, Dart LOC, screens, widgets, API endpoints, test cases. DLD_LINES is kept for
+/// components sized before v3.0.
 enum SizeMeasure {
   TEXT_PAGES
   REQ_PAGES
   HLD_PAGES
   DLD_LINES
   LOC
+  SCREENS
+  WIDGETS
+  API_ENDPOINTS
+  TEST_CASES
 }
 
 enum ComponentKind {
@@ -154,6 +163,8 @@ enum FormType {
   SUMQ
   SUMTASK
   CCR
+  /// Member workbook MYSUMP + MYSUMQ: one member's plan and quality summary (computed; own size contribution typed).
+  MYSUM
 }
 
 enum FlagType {
@@ -308,6 +319,8 @@ model Team {
   clientName   String?
   /// e.g. https://github.com/org/repo
   repoUrl      String?
+  /// Code coverage reported by CI (0–1), typed on SUMQ by the Team Leader or the Quality & Test Manager.
+  coverage     Decimal? @db.Decimal(5, 4)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   createdById  String?
@@ -345,6 +358,7 @@ model Membership {
 
   roles           RoleAssignment[]
   studentInfo     StudentInfo?
+  memberSize      MemberSize?
   timeLogs        TimeLog[]
   defectLogs      DefectLog[]
   aiLogs          AiLog[]          @relation("AiLogAuthor")
@@ -386,6 +400,23 @@ model RoleAssignment {
 // ---------- Individual forms ----------
 
 /// FORM-SI: Student Information Sheet (docs/TSP_Student_Information_Sheet.md).
+/// Member workbook MYSUMP "My Size Contribution": typed by the member (test cases come from LOGTEST).
+model MemberSize {
+  id           String     @id @default(cuid())
+  membershipId String     @unique
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  planLoc      Int?
+  actLoc       Int?
+  planPages    Int?
+  actPages     Int?
+  planScreens  Int?
+  actScreens   Int?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  createdById  String?
+  updatedById  String?
+}
+
 model StudentInfo {
   id                   String     @id @default(cuid())
   membershipId         String     @unique
@@ -667,6 +698,9 @@ model QualityPlan {
   phase             Phase
   planInjectionRate Decimal?   @db.Decimal(8, 3)
   planYield         Decimal?   @db.Decimal(5, 4)
+  /// Planned defects typed over the computed ones (v3.0 SUMP types them); null = computed.
+  plannedInjected   Decimal?   @db.Decimal(8, 2)
+  plannedRemoved    Decimal?   @db.Decimal(8, 2)
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
   createdById       String?

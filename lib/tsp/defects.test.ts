@@ -22,7 +22,7 @@ describe("defect phases", () => {
   it("accepts removal in the same or a later phase", () => {
     expect(defectPhaseErrors("CODE", "CR")).toEqual({});
     expect(defectPhaseErrors("CODE", "CODE")).toEqual({});
-    expect(defectPhaseErrors("REQ", "AT")).toEqual({});
+    expect(defectPhaseErrors("REQ", "UAT")).toEqual({});
   });
   it("rejects removal before injection", () => {
     expect(defectPhaseErrors("UT", "CODE").phaseRemoved).toBeDefined();

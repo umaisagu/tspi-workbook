@@ -77,7 +77,7 @@ const DEFECTS: { week: number; focus: SeedMember["focus"][]; type: number; inj: 
   { week: 6, focus: ["dev"], type: 70, inj: "HLD", rem: "HLDINSP", desc: "ERD missing the relationship between user and listing" },
   { week: 6, focus: ["dev"], type: 80, inj: "DLD", rem: "DLDR", desc: "State not reset after logout in the login flow design" },
   { week: 7, focus: ["dev"], type: 80, inj: "CODE", rem: "CR", desc: "Null check missing on optional API field" },
-  { week: 7, focus: ["dev"], type: 20, inj: "CODE", rem: "COMPILE", desc: "Wrong import path after refactor" },
+  { week: 7, focus: ["dev"], type: 20, inj: "CODE", rem: "BUILD", desc: "Wrong import path after refactor" },
   { week: 7, focus: ["qa", "dev"], type: 70, inj: "CODE", rem: "UT", desc: "Date parsed in UTC instead of local time" },
 ];
 

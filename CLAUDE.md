@@ -69,7 +69,7 @@ components/ui|roster|admin|forms   forms/log-table.tsx = generic editable table 
 lib/forms.ts            form slugs/titles; AVAILABLE_FORMS lists the forms with pages
 lib/server/forms/       access.ts (individualFormAccess / requireTeamForm), refs.ts (cross-record checks), loaders
 lib/tsp/                pure TSPi formulas + tests (calendar, phases, roles, milestones, time, defects, ai-log, student-info,
-                        earned-value (TASK/SCHEDULE/EV/predictions), sumtask, sizes (SUMS), quality (SUMP/SUMQ),
+                        earned-value (TASK/SCHEDULE/EV/predictions), sumtask, sizes (SUMS), quality (SUMP/SUMQ), personal (MYSUM),
                         week (WEEK), peer (PEER), test-log, completion (milestone form status), contribution)
 lib/monitoring/         pure contribution-flag logic + tests: settings.ts (thresholds), flags.ts, status.ts (team badge)
 lib/github/             parse.ts (pure, tested: repo URL, pagination, payload schemas, counts), client.ts (REST fetch)
@@ -108,9 +108,11 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 - **Demonstrator**: read-only on teams in their own lab groups; comments on forms; monitoring views for
   those groups only. Cannot see PEER or lecturer notes.
 - **Team Leader** = member holding TSPi role `TEAM_LEADER` in that team (not an app role): manages roster
-  and TSPi roles, edits team-level forms (TASK, SCHEDULE plan, LOGTEST, WEEK, CCR, SUMS sizes, SUMQ plan).
-- **Planning Manager** (TSPi role `PLANNING_MANAGER`) also edits the TASK plan (`canEditTaskPlan`, `requireTaskPlan`).
-- **Team Member**: edits only own individual forms (FORM-SI, LOGT, LOGD, LOGAI, PEER); reads team-level forms.
+  and TSPi roles, edits team-level forms (TASK, SCHEDULE plan, LOGTEST, WEEK, CCR, SUMS sizes, SUMP/SUMQ plan).
+- **Planning Manager** (TSPi role `PLANNING_MANAGER`) also edits the TASK plan (`canEditTaskPlan`, `requireTaskPlan`),
+  SUMS sizes and the SUMP typed planned defects (`canEditSizePlan`, `requireSizePlan`).
+- **Quality & Test Manager** also edits the SUMQ plan (rates, yields) and CI coverage (`canEditQualityPlan`, `requireQualityPlan`).
+- **Team Member**: edits only own individual forms (FORM-SI, LOGT, LOGD, LOGAI, PEER, MYSUM size contribution); reads team-level forms.
   Exception for member-owned team rows (`canEditOwnTeamRow`): own SCHEDULE row, own LOGTEST cases, own CCRs while
   SUBMITTED, and marking their own TASK done (`canCompleteTask`, `POST …/tasks/[taskId]/complete`: completion date only).
   The Team Leader edits any of these and decides CCRs (`canDecideChange`).
@@ -135,7 +137,7 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 - Form pages: `/t/[teamId]/forms/[slug]?member=<membershipId>` (staff pick the member; students see their own).
   `/forms` lists a student's forms. API: `/api/teams/[id]/{si,logt,logd,logai}` (+ `/[rowId]`), `?member=` on GET.
 - LOGT: "AI used?" per session. Delta = stop − start − interruption (minutes), computed on the server; no future dates; phase must be
-  one where time is logged (not AT/PL); sessions of one member may not overlap on the same day (back-to-back is fine);
+  one where time is logged (every phase but PL); sessions of one member may not overlap on the same day (back-to-back is fine);
   sessions past midnight are split into two entries.
 - LOGD: number = next in the member's sequence (never reused); types 10–100 (TSP) and 110–150 (v3.0 DEFECTTYPES); removal phase
   cannot be earlier than injection phase; severity (default Minor), "From AI code?", fix reference (commit/PR; empty =
@@ -169,21 +171,35 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 - Charts use the dataviz reference palette slots 1–2 (blue #2a78d6 planned, orange #eb6834 earned/actual,
   dashed orange predicted); validated with the dataviz validator. One y-axis per chart.
 
-## Size and quality rules (Stage 4)
+## Size and quality rules (Stage 4, rebuilt to v3.0 in v3.0 stage 3)
 
-- SUMS (Team Leader edits sizes; team reads): per component a size measure and plan/actual Base, Deleted,
-  Modified, Added, Reused, New Reuse are entered. N&C = M + A; Total = N + B − D − M + R (= B − D + A + R).
+- Phases: the 27 v3.0 phases (`lib/tsp/phases.ts`, same flags as v3.0 PHASES: log time, injected, removed, development).
+  COMPILE was renamed BUILD and AT renamed UAT (enum rename, old rows follow); AIGEN, WT, CICD added. Development = PLAN … ST.
+- SUMS (Team Leader or Planning Manager edits sizes; team reads): per component a size measure (Dart LOC, SRS pages, SDD pages,
+  document pages, screens, widgets, API endpoints, test cases; DLD lines kept for old rows) and plan/actual Base, Deleted,
+  Modified, Added, Reused, New Reuse. N&C = M + A; Total = N + B − D − M + R (= B − D + A + R).
   Validation: deleted ≤ base, modified ≤ base − deleted, new reuse ≤ added. Components themselves are added on
   the Team page. Hierarchy via `parentId`; roll-ups add up leaf components only.
 - SUMP / SUMQ (computed; `?component=<id>` for one assembly, default SYSTEM): plan time from TASK, actual time
   from LOGT, actual defects from LOGD, sizes from SUMS — all filtered to the assembly and its parts (SYSTEM
-  includes records with no component). Planned defects: injected = plan rate × plan hours; removed = plan yield ×
-  defects present; after ST: AT removes its yield, the rest is Product Life.
-- SUMQ plan inputs (`QualityPlan`, SYSTEM only): per phase defects injected/hour and yield (0–1); Team Leader
-  edits; with no rows the workbook guidelines (`DEFAULT_PLAN_YIELDS`, `DEFAULT_INJECTION_RATES`) apply.
-- Ratios with a zero denominator are null and shown as "—" (the workbook shows 0). Goals from QualGuide are
-  shown next to SUMQ values.
-- Code: `lib/tsp/sizes.ts`, `lib/tsp/quality.ts`, loader `lib/server/forms/quality.ts`.
+  includes records with no component). AI lines kept (LOGAI), LOGTEST, coverage and typed planned defects are SYSTEM only.
+  Planned defects (lecturer's choice: computed, can override): injected = typed, else plan rate × plan hours; removed =
+  typed, else plan yield × defects present; after ST, UAT removes its yield, the rest is Product Life.
+- SUMP (v3.0): program size (SRS/SDD pages, N/T/R Dart LOC, screens, widgets), time in phase (actual % and plan %), defects
+  injected/removed + UAT/PL rows, summary (LOC/h, CPI, defects/KLOC, hours/defect, AI-assisted share, defects from AI,
+  client acceptance defects). Planned-defect overrides are `QualityPlan.plannedInjected/plannedRemoved` (Leader, Planning Manager).
+- SUMQ (v3.0): sections density, defect ratios, time ratios, review rates + A/FR, phase yield, process yield, test & release
+  (pass rate, automated share, test mix, `Team.coverage`, open defects = LOGD without fix reference), each row with the v3.0
+  guideline and a verdict (OK / LOW / HIGH / TOO FAST); quality profile (QPROFPARAM targets, 0–1 score per axis); percent
+  defect free. Plan inputs (`QualityPlan.planInjectionRate/planYield`, SYSTEM only; Leader, Quality & Test Manager) —
+  with no rates/yields the guidelines (`DEFAULT_PLAN_YIELDS`, `DEFAULT_INJECTION_RATES`) apply. `PUT …/quality-plan`
+  takes `part: "rates"` (with `coverage`) or `part: "defects"` and only touches that part's columns.
+- MYSUM (individual form, member workbook MYSUMP + MYSUMQ, `lib/tsp/personal.ts`): plan hours from the member's own tasks,
+  actuals from their own LOGT/LOGD/LOGTEST (as author)/LOGAI; size contribution (LOC, pages, screens) typed by the member
+  (`MemberSize`, `PUT …/my-size`); MYSUMQ measures with the member workbook guidelines (LOW / ACTION verdicts).
+  Not required by default; as a milestone requirement it follows the member's LOGT.
+- Ratios with a zero denominator are null and shown as "—" (the workbook shows blank).
+- Code: `lib/tsp/sizes.ts`, `lib/tsp/quality.ts`, `lib/tsp/personal.ts`, loaders `lib/server/forms/quality.ts`, `personal.ts`.
 
 ## Stage 5 rules: LOGTEST, WEEK, PEER, CCR, dashboards
 
@@ -278,7 +294,7 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
    LOGAI, WEEK, PEER; M3 + LOGTEST, SUMS, SUMP, SUMQ, SUMTASK; M4 same as M3. CCR always optional.
 9. CCR fields: number, date, requester, component, description, reason, impact, priority, status
    (submitted/approved/rejected/implemented), decided by/at.
-10. All 24 workbook phases are available; the lecturer can hide phases per semester (`Semester.hiddenPhases`).
+10. All 27 v3.0 phases are available; the lecturer can hide phases per semester (`Semester.hiddenPhases`).
 11. The lecturer (or a team leader) adds students to teams by e-mail after they register.
 12. Calendar (v3.0 SETUP): Week 1 = Mon 21 Sep 2026, no break week; M1 Sun 25 Oct, M2 Fri 20 Nov, M3 Sun 20 Dec 2026
     (23:59 MYT; v3.0 gives dates only), M4 Sat 2 Jan 2027 22:00 MYT. Defaults for new semesters; the lecturer edits an
@@ -287,8 +303,9 @@ app/(app)/reference     Reference page for every signed-in user; downloads via /
 15. Workbook v3.0 (2026-10-29) replaces the 2002 workbook; v3.0 wins where they differ. Staged alignment:
     1 ✅ Reference page + downloads, six roles, defect types 110–150; 2 ✅ existing-form fields, calendar, roles per
     milestone (lecturer's choices: EV week = completion date; cancelled tasks keep plan value; the milestone in
-    progress decides roles; LOGAI switched to v3.0 columns); 3 27 phases (AIGEN, BUILD←COMPILE,
-    WT, CICD, UAT←AT) with SUMP/SUMQ rebuilt to v3.0 and personal MYSUMP/MYSUMQ; 4 new forms (SETUP thresholds, GOALS, STRAT, LOGCLIENT, IRTL,
+    progress decides roles; LOGAI switched to v3.0 columns); 3 ✅ 27 phases (AIGEN, BUILD←COMPILE,
+    WT, CICD, UAT←AT) with SUMP/SUMQ rebuilt to v3.0 and personal MYSUMP/MYSUMQ (lecturer's choices: plan hours from TASK;
+    planned defects computed, can be typed over; v3.0 owners + Team Leader; per-assembly view kept); 4 new forms (SETUP thresholds, GOALS, STRAT, LOGCLIENT, IRTL,
     TEAMEVAL, ASSESS, Team Charter). FORM-SI keeps sections A–K; the Team Charter becomes a team form (lecturer's choice).
     The SAMPLE is shown on the Reference page and downloadable; it is not loaded into the database.
     The member workbook (one per student, consolidated weekly into the master's TEAM sheet by copy and paste) maps onto

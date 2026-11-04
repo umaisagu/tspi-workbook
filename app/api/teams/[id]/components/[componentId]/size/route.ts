@@ -1,14 +1,14 @@
 import { db } from "@/lib/db";
 import { componentSizeSchema } from "@/lib/schemas/forms";
 import { updated } from "@/lib/server/audit";
-import { requireTeamForm } from "@/lib/server/forms/access";
+import { requireSizePlan } from "@/lib/server/forms/access";
 import { HttpError, notFound, ok, parseJson, route } from "@/lib/server/http";
 import { sizeErrors } from "@/lib/tsp/sizes";
 
-/** SUMS: sets a component's size measure and its planned and actual sizes. Team Leader only. */
+/** SUMS: sets a component's size measure and its planned and actual sizes. Team Leader or Planning Manager. */
 export const PUT = route(async (req, { params }: RouteContext<"/api/teams/[id]/components/[componentId]/size">) => {
   const { id, componentId } = await params;
-  const { user } = await requireTeamForm(id, "write");
+  const { user } = await requireSizePlan(id);
   const c = await db.component.findFirst({ where: { id: componentId, teamId: id, deletedAt: null } });
   if (!c) throw notFound("Component");
   const input = await parseJson(req, componentSizeSchema);

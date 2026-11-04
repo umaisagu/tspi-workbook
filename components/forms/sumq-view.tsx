@@ -1,80 +1,87 @@
-import type { Sumq } from "@/lib/tsp/quality";
+import type { QualityRow, Sumq, Verdict } from "@/lib/tsp/quality";
 import { phaseName } from "@/lib/tsp/phases";
-import { Card } from "@/components/ui/card";
+import { Badge, Card } from "@/components/ui/card";
 import { num, pct } from "./format";
 import { PlanActualTable } from "./sump-view";
 
-/** QualGuide goals shown next to actuals. */
-const GOALS: Record<string, string> = {
-  "% before COMPILE": "> 75%",
-  "% before UT": "> 85%",
-  "% before IT": "> 97.5%",
-  "% before ST": "> 99%",
-  "DLD Review / Unit Test": "> 2.0",
-  "Code Review / Compile": "> 2.0",
-  "REQ Inspection / Requirements": "> 0.25",
-  "HLD Inspection / High-Level Design": "> 0.5",
-  "Detailed Design / Code": "> 1.00",
-  "DLD Review / Detailed Design": "> 0.5",
-  "Code Review / Code": "> 0.5",
-  "REQ Inspection (pages/h)": "< 2",
-  "HLD Inspection (pages/h)": "< 5",
-  "DLD Review (lines/h)": "< 100",
-  "Code Review (LOC/h)": "< 200",
-  COMPILE: "< 10",
-  UT: "< 5",
-  IT: "< 0.5",
-  ST: "< 0.2",
+const fmt = (r: QualityRow, v: number | null) => (r.format === "pct" ? pct(v) : r.format === "int" ? num(v, 0) : num(v, 2));
+const TONE: Record<Verdict, "green" | "amber" | "red"> = {
+  OK: "green",
+  LOW: "amber",
+  HIGH: "red",
+  "TOO FAST": "amber",
+  ACTION: "red",
 };
 
-type Row = { label: string; plan: number | null; actual: number | null };
-const table = (rows: Row[], fmt: (v: number | null) => string) =>
-  rows.map((r) => [r.label, fmt(r.plan), fmt(r.actual), <span key="g" className="text-xs text-slate-400">{GOALS[r.label] ?? ""}</span>]);
+export function VerdictBadge({ verdict }: { verdict: Verdict | null }) {
+  return verdict ? <Badge tone={TONE[verdict]}>{verdict}</Badge> : <span className="text-slate-300">—</span>;
+}
 
-/** SUMQ: Quality Plan (computed from SUMP; plan inputs on the right). */
+const rowCells = (r: QualityRow) => [
+  r.label,
+  fmt(r, r.plan),
+  fmt(r, r.actual),
+  <span key="g" className="whitespace-nowrap text-xs text-slate-500">
+    {r.guideline?.text ?? ""}
+  </span>,
+  <VerdictBadge key="v" verdict={r.verdict} />,
+];
+
+/** SUMQ: Quality Summary (Workbook v3.0), computed from SUMP and the logs; guidelines and verdicts as on the sheet. */
 export function SumqView({ sumq, isSystem }: { sumq: Sumq; isSystem: boolean }) {
-  const head = ["", "Plan", "Actual", "Goal"];
+  const head = ["", "Plan", "Actual", "Guideline", "Verdict"];
   return (
     <div className="space-y-5">
       <div className="grid gap-5 xl:grid-cols-2 [&>*]:min-w-0">
+        <Card title="Quality profile">
+          <p className="mb-3 text-xs text-slate-500">Each axis scores 0–100% against its QPROFPARAM target; 100% means the target is met.</p>
+          <ul className="space-y-2 text-sm">
+            {sumq.profile.map((a) => (
+              <li key={a.label}>
+                <div className="flex justify-between gap-2">
+                  <span>{a.label}</span>
+                  <span className="text-slate-600">
+                    {num(a.value, 2)} <span className="text-xs text-slate-400">(target {a.target})</span> · {Math.round(a.score * 100)}%
+                  </span>
+                </div>
+                <div
+                  className="mt-1 h-2 rounded bg-slate-100"
+                  role="meter"
+                  aria-label={a.label}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(a.score * 100)}
+                >
+                  <div className="h-2 rounded bg-[#2a78d6]" style={{ width: `${Math.round(a.score * 100)}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
         {isSystem && (
-          <Card title="SYSTEM percent defect free (actual)">
-            <PlanActualTable head={["Phase", "Actual"]} rows={sumq.percentDefectFree.map((r) => [`In ${phaseName(r.phase)}`, pct(r.actual)])} />
+          <Card title="Percent defect free (actual)">
+            <PlanActualTable
+              head={["Phase", "Parts with no defect found"]}
+              rows={sumq.percentDefectFree.map((r) => [`${r.phase} — ${phaseName(r.phase)}`, pct(r.actual)])}
+            />
           </Card>
         )}
-        <Card title="Defects / page">
-          <PlanActualTable head={head} rows={table(sumq.defectsPerPage, (v) => num(v, 2))} />
-        </Card>
-        <Card title="Defects / KLOC">
-          <PlanActualTable head={head} rows={table(sumq.defectsPerKloc, (v) => num(v, 1))} />
-        </Card>
-        <Card title="Defect ratios">
-          <PlanActualTable head={head} rows={table(sumq.defectRatios, (v) => num(v, 2))} />
-        </Card>
-        <Card title="Development time ratios">
-          <PlanActualTable head={head} rows={table(sumq.timeRatios, (v) => num(v, 2))} />
-        </Card>
-        <Card title="Inspection / review rates">
-          <PlanActualTable head={head} rows={table(sumq.reviewRates, (v) => num(v, 1))} />
-        </Card>
-        <Card title="Appraisal / failure ratio (A/FR)">
-          <PlanActualTable head={head} rows={table([{ label: "(DLDR + DLDINSP + CR + CODEINSP) ÷ (COMPILE + UT) time", ...sumq.afr }], (v) => num(v, 2))} />
-        </Card>
-        <Card title="Process yields">
-          <PlanActualTable head={head} rows={table(sumq.processYields, pct)} />
-        </Card>
       </div>
-      <Card title="Phase yields, injection and removal rates">
+      {sumq.sections.map((s) => (
+        <Card key={s.key} title={s.title}>
+          <PlanActualTable head={head} rows={s.rows.map(rowCells)} />
+        </Card>
+      ))}
+      <Card title="Defect injection rates (per hour)">
         <PlanActualTable
-          head={["Phase", "Yield plan", "Yield actual", "Injected/h plan", "Injected/h actual", "Removed/h plan", "Removed/h actual"]}
-          rows={sumq.phaseYields.map((y) => {
-            const inj = sumq.injectionRates.find((r) => r.phase === y.phase);
-            const rem = sumq.removalRates.find((r) => r.phase === y.phase);
-            return [phaseName(y.phase), pct(y.plan, 0), pct(y.actual, 0), num(inj?.plan ?? null, 3), num(inj?.actual ?? null, 2), num(rem?.plan ?? null, 2), num(rem?.actual ?? null, 2)];
-          })}
+          head={["Phase", "Plan", "Actual"]}
+          rows={sumq.injectionRates.map((r) => [`${r.phase} — ${phaseName(r.phase)}`, num(r.plan, 3), num(r.actual, 2)])}
         />
       </Card>
-      <p className="text-xs text-slate-500">— means the ratio has no denominator yet (e.g. no size or no hours in that phase).</p>
+      <p className="text-xs text-slate-500">
+        — means the ratio has no denominator yet (e.g. no size or no hours in that phase). Verdicts compare the actual value with the v3.0 guideline; they are
+        prompts for the team&apos;s post-mortem, not marks.
+      </p>
     </div>
   );
 }

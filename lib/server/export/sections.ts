@@ -12,6 +12,7 @@ import { formatDateOnly } from "@/lib/tsp/calendar";
 import { WEEK_STATUS_LABELS, reportWeeks, submissionStatus, weekReportDueAt, weekStatus, type WeekReport } from "@/lib/tsp/week";
 import { listAiLogs, listDefectLogs, listTimeLogs } from "@/lib/server/forms/logs";
 import { loadPlanning, type Planning } from "@/lib/server/forms/planning";
+import { loadPersonalSummary } from "@/lib/server/forms/personal";
 import { loadSums, loadSumpSumq } from "@/lib/server/forms/quality";
 import { computeWeek, listChangeRequests, listTests } from "@/lib/server/forms/team-forms";
 
@@ -26,7 +27,7 @@ const roleLabel = (r: string) => TSPI_ROLES.find((x) => x.role === r)?.label ?? 
 const title = (form: FormType) => FORM_INFO[form].title.split(" · ")[0]!;
 
 /** Forms in export order. PEER is included only when `includePeer` (lecturer). */
-export const EXPORT_FORMS: FormType[] = ["SI", "LOGT", "LOGD", "LOGAI", "PEER", "TASK", "SCHEDULE", "SUMTASK", "LOGTEST", "WEEK", "SUMS", "SUMP", "SUMQ", "CCR"];
+export const EXPORT_FORMS: FormType[] = ["SI", "LOGT", "LOGD", "LOGAI", "PEER", "MYSUM", "TASK", "SCHEDULE", "SUMTASK", "LOGTEST", "WEEK", "SUMS", "SUMP", "SUMQ", "CCR"];
 
 export interface ExportContext {
   teamId: string;
@@ -415,46 +416,99 @@ export async function formSections(form: FormType, ctx: ExportContext): Promise<
         rows: [...rows.map((r) => [r.phase, r.plan, r.actual, r.actualPct]), ["Total", total.plan, total.actual, null]],
       });
       const sum = sump.summary;
+      const z = sump.size;
       return [
         {
-          title: `${t} summary (SYSTEM)`,
-          columns: [{ header: "Measure", width: 22 }, { header: "Plan", width: 10, format: "dec" }, { header: "Actual", width: 10, format: "dec" }],
+          title: `${t} program size and summary (SYSTEM)`,
+          columns: [{ header: "Measure", width: 26 }, { header: "Plan", width: 10, format: "dec" }, { header: "Actual", width: 10, format: "dec" }],
           rows: [
-            ["LOC new & changed", sump.size.plan.loc.newAndChanged, sump.size.actual.loc.newAndChanged],
-            ["LOC total", sump.size.plan.loc.total, sump.size.actual.loc.total],
-            ["LOC / hour", sum.locPerHour.plan, sum.locPerHour.actual],
+            ["Requirements pages (SRS)", z.srsPages.plan, z.srsPages.actual],
+            ["Design pages (SDD)", z.sddPages.plan, z.sddPages.actual],
+            ["New & changed Dart LOC (N)", z.newAndChanged.plan, z.newAndChanged.actual],
+            ["Total Dart LOC (T)", z.total.plan, z.total.actual],
+            ["Reused Dart LOC (R)", z.reused.plan, z.reused.actual],
+            ["Screens delivered", z.screens.plan, z.screens.actual],
+            ["Reusable widgets built", z.widgets.plan, z.widgets.actual],
+            ["LOC per hour", sum.locPerHour.plan, sum.locPerHour.actual],
             ["CPI (plan h / actual h)", sum.cpi.plan, sum.cpi.actual],
-            ["% reused", sum.reusePct.plan, sum.reusePct.actual],
-            ["% new reuse", sum.newReusePct.plan, sum.newReusePct.actual],
+            ["Defects per KLOC (development)", sum.defectsPerKloc.plan, sum.defectsPerKloc.actual],
+            ["Hours per defect removed", sum.hoursPerDefect.plan, sum.hoursPerDefect.actual],
+            ["% of code AI-assisted", null, sum.aiShare.actual],
+            ["Defects traced to AI code", null, sum.defectsFromAi],
+            ["Client acceptance defects", null, sum.acceptanceDefects],
           ],
         },
         phaseSection("time in phase (h)", sump.time, sump.timeTotal, "dec"),
         phaseSection("defects injected", sump.injected, sump.injectedTotal, "dec"),
         phaseSection("defects removed", sump.removed, sump.removedTotal, "dec"),
+        {
+          title: `${t} after development`,
+          columns: [{ header: "", width: 30 }, { header: "Plan", width: 8, format: "dec" }, { header: "Actual", width: 8, format: "int" }],
+          rows: [
+            ["UAT injected", null, sump.injectedLater.uat],
+            ["PL injected", null, sump.injectedLater.pl],
+            ["UAT removed", sump.removedLater.uat.plan, sump.removedLater.uat.actual],
+            ["PL removed", sump.removedLater.pl.plan, sump.removedLater.pl.actual],
+          ],
+        },
       ];
     }
     case "SUMQ": {
       const { sumq } = await loadSumpSumq(ctx.teamId, null);
       const rows = (group: string, items: readonly { label?: string; phase?: string; plan?: number | null; actual: number | null }[]) =>
-        items.map((x) => [group, x.label ?? x.phase ?? "", x.plan ?? null, x.actual]);
+        items.map((x) => [group, x.label ?? x.phase ?? "", x.plan ?? null, x.actual, "", ""]);
       return [
         {
           title: `${t} (SYSTEM)`,
-          notes: ["Ratios with a zero denominator are shown as —."],
-          columns: [{ header: "Group", width: 18 }, { header: "Measure", width: 30 }, { header: "Plan", width: 10, format: "dec" }, { header: "Actual", width: 10, format: "dec" }],
-          rows: [
-            ...rows("Percent defect free", sumq.percentDefectFree),
-            ...rows("Defects / page", sumq.defectsPerPage),
-            ...rows("Defects / KLOC", sumq.defectsPerKloc),
-            ...rows("Defect ratios", sumq.defectRatios),
-            ...rows("Development time ratios", sumq.timeRatios),
-            ...rows("Review rates", sumq.reviewRates),
-            ["A/FR", "Appraisal / failure ratio", sumq.afr.plan, sumq.afr.actual],
-            ...rows("Phase yields", sumq.phaseYields),
-            ...rows("Process yields", sumq.processYields),
-            ...rows("Injection rate (/h)", sumq.injectionRates),
-            ...rows("Removal rate (/h)", sumq.removalRates),
+          notes: ["Ratios with a zero denominator are shown as —. Percentages are fractions (0.85 = 85%)."],
+          columns: [
+            { header: "Group", width: 18 },
+            { header: "Measure", width: 30 },
+            { header: "Plan", width: 9, format: "dec" },
+            { header: "Actual", width: 9, format: "dec" },
+            { header: "Guideline", width: 10 },
+            { header: "Verdict", width: 8 },
           ],
+          rows: [
+            ...sumq.sections.flatMap((sec) => sec.rows.map((r) => [sec.title, r.label, r.plan, r.actual, r.guideline?.text ?? "", r.verdict ?? ""])),
+            ...sumq.profile.map((a) => ["Quality profile", a.label, null, a.value, `target ${a.target}`, `${Math.round(a.score * 100)}%`]),
+            ...rows("Percent defect free", sumq.percentDefectFree),
+            ...rows("Injection rate (/h)", sumq.injectionRates),
+          ],
+        },
+      ];
+    }
+    case "MYSUM": {
+      const all = await Promise.all(ctx.members.map(async (m) => ({ m, s: await loadPersonalSummary(m.id) })));
+      const labels = all[0]?.s.sumq.map((r) => r.label) ?? [];
+      return [
+        {
+          title: `${t} — my measures (MYSUMQ)`,
+          notes: ["Percentages are fractions (0.85 = 85%). — means no denominator yet."],
+          columns: [{ header: "Measure", width: 30 }, ...all.map(({ m }) => ({ header: m.name, width: 12, format: "dec" as const }))],
+          rows: labels.map((label) => [label, ...all.map(({ s }) => s.sumq.find((r) => r.label === label)?.actual ?? null)]),
+        },
+        {
+          title: `${t} — time in phase (MYSUMP, h)`,
+          columns: [
+            { header: "Phase", width: 10 },
+            ...all.flatMap(({ m }) => [
+              { header: `${m.name} plan`, width: 9, format: "dec" as const },
+              { header: `${m.name} actual`, width: 9, format: "dec" as const },
+            ]),
+          ],
+          rows: (all[0]?.s.sump.time ?? []).map((r, i) => [r.phase, ...all.flatMap(({ s }) => [s.sump.time[i]?.plan ?? null, s.sump.time[i]?.actual ?? null])]),
+        },
+        {
+          title: `${t} — size contribution (MYSUMP)`,
+          columns: [
+            { header: "Member", width: 20 },
+            ...(all[0]?.s.sump.size ?? []).flatMap((x) => [
+              { header: `${x.label} plan`, width: 10, format: "int" as const },
+              { header: `${x.label} actual`, width: 10, format: "int" as const },
+            ]),
+          ],
+          rows: all.map(({ m, s }) => [m.name, ...s.sump.size.flatMap((x) => [x.plan, x.actual])]),
         },
       ];
     }

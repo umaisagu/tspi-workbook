@@ -11,7 +11,7 @@ export const formTypeSchema = z.enum([
 ]);
 export const phaseSchema = z.enum([
   "MGMT", "STRAT", "PLAN", "REQ", "STP", "REQINSP", "HLD", "ITP", "HLDINSP", "DLD", "DLDR", "TD", "DLDINSP",
-  "CODE", "CR", "COMPILE", "CODEINSP", "UT", "IT", "ST", "DOC", "PM", "AT", "PL",
+  "CODE", "AIGEN", "CR", "BUILD", "CODEINSP", "UT", "WT", "IT", "CICD", "ST", "UAT", "DOC", "PM", "PL",
 ]);
 export const tspiRoleSchema = z.enum([
   "TEAM_LEADER", "PRODUCT_OWNER", "DEVELOPMENT_MANAGER", "PLANNING_MANAGER", "QUALITY_PROCESS_MANAGER", "SUPPORT_MANAGER",

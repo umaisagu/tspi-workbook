@@ -6,6 +6,20 @@
  */
 import type { SizeMeasure } from "@/generated/prisma/enums";
 
+/** Size measures (v3.0 PLANGUIDE / SUMS); DLD lines is kept for components sized before v3.0. */
+export const SIZE_MEASURES: readonly { value: SizeMeasure; label: string }[] = [
+  { value: "LOC", label: "Dart LOC" },
+  { value: "REQ_PAGES", label: "SRS pages" },
+  { value: "HLD_PAGES", label: "SDD pages" },
+  { value: "TEXT_PAGES", label: "Document pages" },
+  { value: "SCREENS", label: "Screens" },
+  { value: "WIDGETS", label: "Widgets" },
+  { value: "API_ENDPOINTS", label: "API endpoints" },
+  { value: "TEST_CASES", label: "Test cases" },
+  { value: "DLD_LINES", label: "DLD lines (before v3.0)" },
+];
+export const sizeMeasureLabel = (m: string | null | undefined): string => SIZE_MEASURES.find((o) => o.value === m)?.label ?? m ?? "—";
+
 export interface SizeCounts {
   base: number;
   deleted: number;
@@ -20,11 +34,22 @@ export interface SizeTotals extends SizeCounts {
   total: number;
 }
 
-export const ZERO_SIZE: SizeCounts = { base: 0, deleted: 0, modified: 0, added: 0, reused: 0, newReuse: 0 };
+export const ZERO_SIZE: SizeCounts = {
+  base: 0,
+  deleted: 0,
+  modified: 0,
+  added: 0,
+  reused: 0,
+  newReuse: 0,
+};
 
 export function sizeTotals(c: SizeCounts): SizeTotals {
   const newAndChanged = c.modified + c.added;
-  return { ...c, newAndChanged, total: newAndChanged + c.base - c.deleted - c.modified + c.reused };
+  return {
+    ...c,
+    newAndChanged,
+    total: newAndChanged + c.base - c.deleted - c.modified + c.reused,
+  };
 }
 
 export function addSizes(a: SizeCounts, b: SizeCounts): SizeCounts {
@@ -82,6 +107,10 @@ export interface ProgramSize {
   hldPages: number;
   dldLines: number;
   textPages: number;
+  screens: number;
+  widgets: number;
+  apiEndpoints: number;
+  testCases: number;
   loc: SizeTotals;
 }
 
@@ -93,12 +122,31 @@ export function programSize(nodes: readonly ComponentNode[], scope: string | nul
   const leaves = leafIds(nodes);
   const inScope = scope === null ? new Set(nodes.map((n) => n.id)) : descendantsOf(scope, nodes);
   let loc = ZERO_SIZE;
-  const pages = { REQ_PAGES: 0, HLD_PAGES: 0, DLD_LINES: 0, TEXT_PAGES: 0 } as Record<SizeMeasure, number>;
+  const pages: Record<Exclude<SizeMeasure, "LOC">, number> = {
+    REQ_PAGES: 0,
+    HLD_PAGES: 0,
+    DLD_LINES: 0,
+    TEXT_PAGES: 0,
+    SCREENS: 0,
+    WIDGETS: 0,
+    API_ENDPOINTS: 0,
+    TEST_CASES: 0,
+  };
   for (const n of nodes) {
     if (!leaves.has(n.id) || !inScope.has(n.id)) continue;
     const c = n[which];
     if (n.sizeMeasure === "LOC") loc = addSizes(loc, c);
     else pages[n.sizeMeasure] += sizeTotals(c).total;
   }
-  return { reqPages: pages.REQ_PAGES, hldPages: pages.HLD_PAGES, dldLines: pages.DLD_LINES, textPages: pages.TEXT_PAGES, loc: sizeTotals(loc) };
+  return {
+    reqPages: pages.REQ_PAGES,
+    hldPages: pages.HLD_PAGES,
+    dldLines: pages.DLD_LINES,
+    textPages: pages.TEXT_PAGES,
+    screens: pages.SCREENS,
+    widgets: pages.WIDGETS,
+    apiEndpoints: pages.API_ENDPOINTS,
+    testCases: pages.TEST_CASES,
+    loc: sizeTotals(loc),
+  };
 }
