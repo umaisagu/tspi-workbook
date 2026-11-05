@@ -188,3 +188,32 @@ export function canExport(v: Viewer, team: TeamRef): boolean {
 export function canExportPrivate(v: Viewer): boolean {
   return isLecturer(v);
 }
+
+// ----- Lectures hub (reading material; opens are never a flag or a mark) -----
+
+/** Any signed-in user reads the lecture series of the active semester. */
+export function canReadLectures(_v: Viewer): boolean {
+  return true;
+}
+
+/** Planned lectures show title, week and summary only: no resources, no check question. */
+export function canSeeLectureDetail(_v: Viewer, lecture: { status: "DELIVERED" | "CURRENT" | "PLANNED" }): boolean {
+  return lecture.status !== "PLANNED";
+}
+
+/** Only students record opens and check answers, always for themselves (the user comes from the session). */
+export function canRecordLectureView(v: Viewer, lecture: { status: "DELIVERED" | "CURRENT" | "PLANNED" }): boolean {
+  return v.appRole === "STUDENT" && lecture.status !== "PLANNED";
+}
+
+/** Lecture open/answer aggregates and per-student rows: lecturer (all), demonstrator (own lab groups). */
+export function canViewLectureMonitoring(v: Viewer, labGroupId?: string | null): boolean {
+  if (isLecturer(v)) return true;
+  if (v.appRole !== "DEMONSTRATOR") return false;
+  return labGroupId === undefined ? v.demonstratorLabGroupIds.length > 0 : labGroupId !== null && v.demonstratorLabGroupIds.includes(labGroupId);
+}
+
+/** Creating and editing lectures, resources and check questions. */
+export function canManageLectures(v: Viewer): boolean {
+  return isLecturer(v);
+}

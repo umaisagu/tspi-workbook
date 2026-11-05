@@ -22,6 +22,11 @@ import {
   canExportPrivate,
   canViewMonitoring,
   canViewTeam,
+  canReadLectures,
+  canSeeLectureDetail,
+  canRecordLectureView,
+  canViewLectureMonitoring,
+  canManageLectures,
   type Viewer,
 } from "./permissions";
 
@@ -227,5 +232,40 @@ describe("exports", () => {
     expect(canExportPrivate(lecturer)).toBe(true);
     expect(canExportPrivate(demoG1)).toBe(false);
     expect(canExportPrivate(leaderA)).toBe(false);
+  });
+});
+
+describe("lectures hub", () => {
+  const delivered = { status: "DELIVERED" as const };
+  const planned = { status: "PLANNED" as const };
+  it("everyone signed in reads the series; planned lectures show no detail", () => {
+    for (const v of [lecturer, demoG1, leaderA, studentWithGroups]) expect(canReadLectures(v)).toBe(true);
+    expect(canSeeLectureDetail(memberA, delivered)).toBe(true);
+    expect(canSeeLectureDetail(memberA, { status: "CURRENT" })).toBe(true);
+    expect(canSeeLectureDetail(memberA, planned)).toBe(false);
+    expect(canSeeLectureDetail(lecturer, planned)).toBe(false);
+  });
+  it("only students record opens and answers, and not on planned lectures", () => {
+    expect(canRecordLectureView(memberA, delivered)).toBe(true);
+    expect(canRecordLectureView(studentWithGroups, delivered)).toBe(true); // no team yet is fine
+    expect(canRecordLectureView(memberA, planned)).toBe(false);
+    expect(canRecordLectureView(lecturer, delivered)).toBe(false);
+    expect(canRecordLectureView(demoG1, delivered)).toBe(false);
+  });
+  it("monitoring: lecturer everything, demonstrator own lab groups, students never", () => {
+    expect(canViewLectureMonitoring(lecturer)).toBe(true);
+    expect(canViewLectureMonitoring(lecturer, null)).toBe(true);
+    expect(canViewLectureMonitoring(demoG1)).toBe(true);
+    expect(canViewLectureMonitoring(demoG1, "g1")).toBe(true);
+    expect(canViewLectureMonitoring(demoG1, "g2")).toBe(false);
+    expect(canViewLectureMonitoring(demoG1, null)).toBe(false); // students outside a team: lecturer only
+    expect(canViewLectureMonitoring({ ...demoG1, demonstratorLabGroupIds: [] })).toBe(false);
+    expect(canViewLectureMonitoring(leaderA)).toBe(false);
+    expect(canViewLectureMonitoring(studentWithGroups, "g1")).toBe(false);
+  });
+  it("only the lecturer manages lectures", () => {
+    expect(canManageLectures(lecturer)).toBe(true);
+    expect(canManageLectures(demoG1)).toBe(false);
+    expect(canManageLectures(leaderA)).toBe(false);
   });
 });

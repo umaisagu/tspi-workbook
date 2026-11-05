@@ -15,7 +15,10 @@ import { seedTeamForms } from "./seed-team-forms";
 import { seedGithub } from "./seed-github";
 import { seedAllowed } from "../lib/deploy/target";
 import type { SeedComponent } from "./seed-logs";
-import { localDate, weekOf } from "../lib/tsp/calendar";
+import { localDate, weekOf, weekStart } from "../lib/tsp/calendar";
+import { loadSeries } from "../lib/lectures/load-series";
+import { SERIES_2026_S1 } from "../lib/lectures/series-2026-s1";
+import type { PrismaClient } from "../generated/prisma/client";
 
 const localWeek = (week1: Date) => weekOf(localDate(new Date()), week1);
 
@@ -288,6 +291,11 @@ async function main() {
     // A registered student who is not in a team yet.
     await db.user.create({ data: { name: "Lukas Chin (no team)", email: "84099@siswa.unimas.my", passwordHash } });
 
+    // Lectures hub: the 2026/27 S1 series, and opens/answers so the lecture monitor has data. Elvis (inactive) stopped
+    // opening after the first three; Farhan answers wrong more often; Lukas (no team) opened two.
+    await loadSeries(db, semester.id, SERIES_2026_S1, { actorId: lecturer.id });
+    await seedLectureViews(db, semester.week1Monday);
+
     console.info("Seed complete.");
     console.info(`  Lecturer:      lecturer@unimas.my`);
     console.info(`  Demonstrators: demo1@siswa.unimas.my (Group 1), demo2@siswa.unimas.my (Group 2)`);
@@ -307,3 +315,35 @@ main().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 });
+
+async function seedLectureViews(db: PrismaClient, week1Monday: Date) {
+  const now = new Date();
+  const lectures = await db.lecture.findMany({ where: { status: { not: "PLANNED" } }, orderBy: { order: "asc" }, include: { check: true } });
+  const students = await db.user.findMany({ where: { appRole: "STUDENT" }, orderBy: { email: "asc" } });
+  const rows = [];
+  for (const [i, l] of lectures.entries()) {
+    for (const [k, u] of students.entries()) {
+      const matric = u.email.slice(0, 5);
+      if (matric === "84005" && i >= 3) continue;
+      if (matric === "84099" && i >= 2) continue;
+      if ((k + i) % 5 === 0) continue; // a few not opened
+      const opened = new Date(weekStart(l.weekNumber ?? 1, week1Monday).getTime() + (10 + ((k * 7 + i * 3) % 60)) * 3600_000);
+      if (opened > now) continue;
+      const last = new Date(Math.min(now.getTime(), opened.getTime() + ((k + i) % 3) * 86_400_000));
+      const answered = l.check && (k + 2 * i) % 4 !== 0;
+      const right = l.check ? (matric === "84006" ? (k + i) % 2 === 0 : (k * i) % 3 !== 1) : false;
+      const answerIndex = !l.check ? null : right ? l.check.answerIndex : (l.check.answerIndex + 1) % l.check.options.length;
+      rows.push({
+        lectureId: l.id,
+        userId: u.id,
+        firstOpenedAt: opened,
+        lastOpenedAt: last,
+        openCount: 1 + ((k + i) % 3),
+        answeredAt: answered ? new Date(opened.getTime() + 600_000) : null,
+        answerIndex: answered ? answerIndex : null,
+        correct: answered ? right : null,
+      });
+    }
+  }
+  await db.lectureView.createMany({ data: rows });
+}

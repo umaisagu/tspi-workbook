@@ -17,6 +17,7 @@
     "db:reset": "prisma migrate reset",
     "postinstall": "prisma generate",
     "create-lecturer": "tsx scripts/create-lecturer.ts",
+    "seed-lectures": "tsx scripts/seed-lectures.ts",
     "backup": "tsx scripts/backup.ts"
   },
   "dependencies": {

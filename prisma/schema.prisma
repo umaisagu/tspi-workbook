@@ -205,6 +205,7 @@ model User {
   updatedById    String?
 
   memberships    Membership[]
+  lectureViews   LectureView[]
   demonstratorOf LabGroupDemonstrator[]
   resetTokens    PasswordResetToken[]
   comments       FormComment[]
@@ -254,6 +255,7 @@ model Semester {
 
   milestones Milestone[]
   labGroups  LabGroup[]
+  lectures   Lecture[]
   monitoring MonitoringSettings?
 }
 
@@ -896,4 +898,116 @@ model AppMeta {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// ---------- Lectures hub (reading material + a light "opened" signal; never graded, never a flag) ----------
+
+enum LectureStatus {
+  DELIVERED
+  CURRENT
+  PLANNED
+}
+
+enum ResourceKind {
+  SLIDES
+  COMPANION
+  VIDEO
+  QUIZ
+  HANDOUT
+  FILE
+}
+
+/// One lecture of a semester's series. Content is plain text, rendered as text.
+model Lecture {
+  id          String            @id @default(cuid())
+  semesterId  String
+  semester    Semester          @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  /// e.g. "L06-07", "L01", "L-TSP"; unique per semester among all rows (soft-deleted codes stay taken).
+  code        String
+  title       String
+  kicker      String
+  summary     String
+  weekLabel   String
+  /// Week the lecture belongs to, for the "this week" marker (lib/tsp/calendar.ts).
+  weekNumber  Int?
+  order       Int
+  status      LectureStatus     @default(PLANNED)
+  covers      String[]
+  /// [{ title, detail }]
+  parts       Json?
+  /// [{ kind, detail }]
+  activities  Json?
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+  deletedById String?
+
+  resources LectureResource[]
+  check     LectureCheck?
+  views     LectureView[]
+
+  @@unique([semesterId, code])
+  @@index([semesterId, order])
+}
+
+model LectureResource {
+  id          String       @id @default(cuid())
+  lectureId   String
+  lecture     Lecture      @relation(fields: [lectureId], references: [id], onDelete: Cascade)
+  kind        ResourceKind
+  label       String
+  /// External link; empty when the item is a file on eLEAP not yet linked.
+  url         String?
+  fileName    String?
+  order       Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+  deletedById String?
+
+  @@index([lectureId, order])
+}
+
+/// The self-check question of a lecture (one per lecture for now).
+model LectureCheck {
+  id          String   @id @default(cuid())
+  lectureId   String   @unique
+  lecture     Lecture  @relation(fields: [lectureId], references: [id], onDelete: Cascade)
+  question    String
+  /// 2–5 options
+  options     String[]
+  answerIndex Int
+  whenRight   String
+  whenWrong   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+}
+
+/// One row per student per lecture: when they opened it and their (first, locked) answer to the check question.
+model LectureView {
+  id            String    @id @default(cuid())
+  lectureId     String
+  lecture       Lecture   @relation(fields: [lectureId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstOpenedAt DateTime
+  lastOpenedAt  DateTime
+  openCount     Int       @default(1)
+  answeredAt    DateTime?
+  answerIndex   Int?
+  correct       Boolean?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String?
+  updatedById   String?
+
+  @@unique([lectureId, userId])
+  @@index([userId])
 }
